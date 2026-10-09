@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>访烟火生活 · 弋阳西街</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --ink: #2a231c;
+        --paper: #f9f2e4;
+        --cinnabar: #b03a2c;
+        --lantern: #d4622a;
+        --gold: #d9a74f;
+        --night-text: #efe4cf;
+    }
+    html, body { height: 100%; }
+    body {
+        font-family: "SimSun", "宋体", "Songti SC", "Noto Serif SC", serif;
+        color: var(--ink);
+        overflow: hidden;
+        background: #1a1430;
+        transition: color 0.8s ease;
+    }
+    body.night { color: var(--night-text); }
+
+    /* ============ 昼夜双层氛围背景 ============ */
+    .sky { position: fixed; inset: 0; z-index: 0; transition: opacity 1.1s ease; }
+    .sky-day {
+        opacity: 1;
+        background:
+            radial-gradient(circle at 78% 12%, rgba(255, 236, 190, 0.95), rgba(255, 205, 140, 0) 42%),
+            linear-gradient(180deg, #f3d9a8 0%, #eec792 45%, #e8b47c 72%, #d99c6b 100%);
+    }
+    .sky-night {
+        opacity: 0;
+        background:
+            radial-gradient(circle at 22% 16%, rgba(255, 235, 190, 0.28), rgba(255, 235, 190, 0) 22%),
+            radial-gradient(circle at 80% 90%, rgba(176, 58, 44, 0.22), rgba(176, 58, 44, 0) 55%),
+            linear-gradient(180deg, #100f26 0%, #211a3e 45%, #3d2547 78%, #4d2c3d 100%);
+    }
+    body.night .sky-day { opacity: 0; }
+    body.night .sky-night { opacity: 1; }
+
+    /* 日轮 / 月亮 */
+    .orb {
+        position: fixed; z-index: 1; width: 130px; height: 130px; border-radius: 50%;
+        top: 7%; right: 10%; transition: opacity 1s ease, transform 1.2s ease;
+    }
+    .orb-sun {
+        background: radial-gradient(circle, #ffeec2 0%, #f7c97e 55%, rgba(247, 201, 126, 0) 72%);
+        filter: blur(1px); opacity: 1;
+    }
+    .orb-moon {
+        opacity: 0; top: 8%; right: 13%; width: 92px; height: 92px;
+        background: radial-gradient(circle at 38% 34%, #fff8e4 0%, #efe2bd 60%, rgba(239, 226, 189, 0) 72%);
+        box-shadow: 0 0 60px rgba(255, 240, 200, 0.35);
+    }
+    body.night .orb-sun { opacity: 0; transform: translateY(-30px); }
+    body.night .orb-moon { opacity: 1; }
+    .star { position: fixed; z-index: 1; width: 3px; height: 3px; border-radius: 50%;
+        background: #fff3d4; opacity: 0; transition: opacity 1s ease; animation: twinkle 3s ease-in-out infinite; }
+    body.night .star { opacity: 0.85; }
+    @keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.95; } }
+
+    /* 夜幕下檐角悬挂的灯笼剪影 */
+    .hang-lanterns { position: fixed; z-index: 1; top: 0; left: 0; right: 0; height: 150px;
+        pointer-events: none; opacity: 0; transition: opacity 1s ease; }
+    body.night .hang-lanterns { opacity: 0.9; }
+    .hl { position: absolute; top: -10px; width: 34px; transform-origin: top center; animation: sway 4.5s ease-in-out infinite; }
+    .hl .cord { width: 2px; height: 46px; margin: 0 auto; background: rgba(20, 12, 8, 0.65); }
+    .hl .body { width: 30px; height: 38px; margin: -2px auto 0; border-radius: 8px 8px 10px 10px;
+        background: radial-gradient(circle at 50% 35%, #ffb066, #d4532a 70%);
+        box-shadow: 0 0 26px rgba(240, 130, 60, 0.75); }
+    .hl .tail { width: 3px; height: 16px; margin: 0 auto; background: #c44a26; }
+    @keyframes sway { 0%, 100% { transform: rotate(4deg); } 50% { transform: rotate(-4deg); } }
+
+    /* 漂浮光点：白日浮尘 / 夜为流萤 */
+    .motes { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+    .mote { position: absolute; bottom: -20px; border-radius: 50%;
+        background: rgba(190, 140, 70, 0.55);
+        animation: rise linear infinite; }
+    body.night .mote {
+        background: radial-gradient(circle, rgba(255, 220, 150, 0.95), rgba(255, 190, 110, 0));
+        box-shadow: 0 0 8px rgba(255, 200, 120, 0.8);
+    }
+    @keyframes rise {
+        0% { transform: translateY(0) translateX(0); opacity: 0; }
+        12% { opacity: 0.9; }
+        88% { opacity: 0.7; }
+        100% { transform: translateY(-108vh) translateX(40px); opacity: 0; }
+    }
+
+    .stage-wrap { position: relative; z-index: 5; height: 100vh; display: flex; flex-direction: column; }
+
+    /* ============ 顶部 ============ */
+    .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 26px 10px;
+    }
+    .back-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 16px; font-family: inherit; font-size: 15px;
+        color: var(--ink); background: rgba(249, 242, 228, 0.85);
+        border: 1px solid rgba(125, 97, 71, 0.55); border-radius: 4px;
+        cursor: pointer; transition: all 0.25s ease;
+    }
+    .back-btn:hover { background: #fff7e8; transform: translateX(-2px); }
+    body.night .back-btn { color: var(--night-text); background: rgba(30, 24, 52, 0.55); border-color: rgba(239, 228, 207, 0.4); }
+    body.night .back-btn:hover { background: rgba(60, 45, 90, 0.7); }
+    .page-title {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: clamp(24px, 3.2vw, 34px); letter-spacing: 0.18em;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    }
+    .page-title .verb { color: var(--cinnabar); }
+    body.night .page-title .verb { color: #e8694f; }
+    .sky-badge {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: "KaiTi", "楷体", serif; font-size: 15px; letter-spacing: 0.18em;
+        padding: 6px 16px; border-radius: 30px;
+        background: rgba(249, 242, 228, 0.85); color: #8a5a2b;
+        border: 1px solid rgba(212, 98, 42, 0.5);
+        transition: all 0.6s ease;
+    }
+    .sky-badge .ico { width: 16px; height: 16px; }
+    body.night .sky-badge {
+        background: rgba(30, 24, 52, 0.6); color: #f3d9a6; border-color: rgba(217, 167, 79, 0.6);
+    }
+    .sky-badge .ico-moon { display: none; }
+    body.night .sky-badge .ico-sun { display: none; }
+    body.night .sky-badge .ico-moon { display: block; }
+
+    /* ============ 走马盘舞台 ============ */
+    .stage {
+        flex: 1; min-height: 0; position: relative; z-index: 1;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 60px;
+    }
+    .deck { position: relative; width: 100%; height: 100%; perspective: 1500px; }
+    .slide {
+        position: absolute; top: 50%; left: 50%;
+        width: var(--cw, min(56vw, 600px));
+        aspect-ratio: 4 / 3;
+        max-height: 100%;
+        margin: 0;
+        transform-style: preserve-3d;
+        transition: transform 0.75s cubic-bezier(0.24, 0.85, 0.3, 1),
+                    opacity 0.6s ease, filter 0.6s ease;
+        cursor: pointer;
+        will-change: transform;
+    }
+    .slide.port { width: min(34vw, 380px); aspect-ratio: 3 / 4; }
+    .photo-card {
+        position: absolute; inset: 0;
+        background: #fbf5ea;
+        padding: 12px 12px 12px;
+        border-radius: 4px;
+        box-shadow: 0 26px 60px rgba(20, 10, 4, 0.45);
+        transform: rotate(-1.2deg);
+        transition: transform 0.5s ease;
+    }
+    .slide.is-current .photo-card { transform: rotate(-0.4deg); }
+    .photo-card .tape {
+        position: absolute; top: -13px; left: 50%; transform: translateX(-50%) rotate(-2deg);
+        width: 110px; height: 28px;
+        background: rgba(212, 98, 42, 0.28);
+        border-left: 1px dashed rgba(125, 97, 71, 0.25);
+        border-right: 1px dashed rgba(125, 97, 71, 0.25);
+    }
+    .photo-box { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 2px; background: #221a2e; }
+    .photo-box > img.main-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-cap {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        padding: 18px 14px 10px;
+        font-family: "KaiTi", "楷体", serif; font-size: 15px; letter-spacing: 0.22em; color: #fff;
+        text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+        background: linear-gradient(0deg, rgba(18, 12, 8, 0.66), rgba(18, 12, 8, 0));
+        pointer-events: none;
+    }
+    .day-stamp {
+        position: absolute; top: 10px; right: 10px; z-index: 4;
+        font-family: "KaiTi", "楷体", serif; font-size: 12px; letter-spacing: 0.12em;
+        padding: 3px 9px; border-radius: 3px; color: #fff;
+        background: rgba(212, 98, 42, 0.85);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .day-stamp.night-stamp { background: rgba(52, 46, 96, 0.85); border: 1px solid rgba(217, 167, 79, 0.7); }
+
+    /* 当前片上的观察光点：平时常显，侧片隐藏 */
+    .find-dot {
+        position: absolute; z-index: 6; width: 16px; height: 16px;
+        transform: translate(-50%, -50%); border-radius: 50%;
+        display: none; cursor: pointer; padding: 0; border: none; background: transparent;
+    }
+    .slide.is-current .find-dot { display: block; }
+    .find-dot::before {
+        content: ""; position: absolute; inset: 3px; border-radius: 50%;
+        background: radial-gradient(circle, #ffe9b0, #e0853a);
+        box-shadow: 0 0 10px rgba(255, 200, 110, 0.95);
+    }
+    .find-dot::after {
+        content: ""; position: absolute; inset: -4px; border-radius: 50%;
+        border: 2px solid rgba(255, 220, 150, 0.8);
+        animation: dotPulse 1.7s ease-out infinite;
+    }
+    .find-dot:hover::before, .find-dot.on::before { background: radial-gradient(circle, #fff6d8, var(--cinnabar)); }
+    .find-dot:hover { transform: translate(-50%, -50%) scale(1.25); }
+    @keyframes dotPulse { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
+
+    /* 两侧换幕大箭头 */
+    .nav-arrow {
+        position: absolute; top: 42%; z-index: 20;
+        width: 54px; height: 54px; border-radius: 50%;
+        font-size: 20px; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        color: #5a4636; background: rgba(249, 242, 228, 0.82);
+        border: 1px solid rgba(125, 97, 71, 0.5);
+        box-shadow: 0 8px 22px rgba(30, 16, 6, 0.28);
+        cursor: pointer; transition: all 0.25s ease;
+    }
+    .nav-arrow:hover { background: #fff7e8; color: var(--cinnabar); transform: translateY(-50%) scale(1.08); }
+    .nav-prev { left: 26px; }
+    .nav-next { right: 26px; }
+    .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+    body.night .nav-arrow { color: var(--night-text); background: rgba(30, 24, 52, 0.6); border-color: rgba(239, 228, 207, 0.35); }
+    body.night .nav-arrow:hover { background: rgba(80, 60, 110, 0.8); color: #ffd9a0; }
+    /* 抵消 hover 的 translateY：默认也要垂直居中定位 */
+    .nav-arrow { transform: translateY(-50%); }
+
+    /* ============ 下方手札区（简介 / 放大镜发现 二选一） ============ */
+    .journal {
+        position: relative; z-index: 10;
+        display: flex; justify-content: center;
+        padding: 4px 90px 0;
+    }
+    .journal-card {
+        position: relative;
+        width: min(820px, 100%);
+        background: rgba(249, 242, 228, 0.95);
+        border: 1px solid rgba(125, 97, 71, 0.35);
+        border-radius: 10px 10px 0 0;
+        box-shadow: 0 -8px 34px rgba(20, 10, 4, 0.28);
+        padding: 14px 26px 12px;
+        color: var(--ink);
+        min-height: 128px;
+    }
+    .journal-card::before, .journal-card::after {  /* 装订红线 */
+        content: ""; position: absolute; top: 0; width: 34px; height: 10px;
+        background: repeating-linear-gradient(90deg, var(--cinnabar) 0 4px, transparent 4px 8px);
+        opacity: 0.55;
+    }
+    .journal-card::before { left: 18px; }
+    .journal-card::after { right: 18px; }
+    .j-meta { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
+    .j-seal {
+        width: 30px; height: 30px; border-radius: 5px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: var(--cinnabar); color: #fff;
+        font-family: "KaiTi", "楷体", serif; font-size: 17px;
+        box-shadow: 0 2px 6px rgba(176, 58, 44, 0.5);
+    }
+    .j-cat { font-family: "KaiTi", "楷体", serif; font-size: 14px; letter-spacing: 0.16em; color: #8a6a48; }
+    .j-title {
+        text-align: center;
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: clamp(22px, 2.6vw, 28px); letter-spacing: 0.14em; margin-bottom: 5px;
+    }
+    .j-intro { font-size: 14px; line-height: 1.85; text-align: center; max-width: 720px; margin: 0 auto; }
+    .j-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 8px; }
+    .j-tags span {
+        font-family: "KaiTi", "楷体", serif; font-size: 12.5px; letter-spacing: 0.06em;
+        color: #7a5230; background: rgba(212, 98, 42, 0.09);
+        border: 1px solid rgba(212, 98, 42, 0.3); border-radius: 20px; padding: 2px 11px;
+    }
+    .j-pane { transition: opacity 0.3s ease, transform 0.3s ease; }
+    .j-pane.hidden { display: none; }
+
+    /* 发现手札 */
+    .notes-head { display: flex; align-items: center; gap: 12px; }
+    .notes-head .j-seal { background: var(--lantern); }
+    .notes-title { font-family: "KaiTi", "楷体", serif; font-size: 20px; letter-spacing: 0.1em; color: var(--cinnabar); }
+    .notes-count { font-size: 13px; color: #8a6a48; }
+    .notes-desc { font-size: 14px; line-height: 1.8; margin-top: 4px; }
+    .notes-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .mini-btn {
+        font-family: "KaiTi", "楷体", serif; font-size: 13.5px;
+        width: 32px; height: 32px; border-radius: 50%;
+        border: 1px solid rgba(125, 97, 71, 0.5); background: transparent; color: #6b533c;
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .mini-btn:hover { background: var(--paper-deep); color: var(--cinnabar); }
+    .exit-lens {
+        width: auto; border-radius: 20px; padding: 0 14px; height: 32px;
+        color: #fff; background: var(--lantern); border-color: var(--lantern);
+    }
+    .exit-lens:hover { background: var(--cinnabar); color: #fff; }
+    .notes-hint { text-align: center; font-family: "KaiTi", "楷体", serif; font-size: 13px; color: #9a7b58; margin-top: 3px; }
+
+    /* ============ 底部昼夜进度带（同时作为避让音乐按钮的 controls） ============ */
+    .controls {
+        position: relative; z-index: 10;
+        padding: 10px 30px 16px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .rail { position: relative; display: flex; align-items: flex-start; gap: clamp(10px, 4vw, 46px); }
+    .rail::before {
+        content: ""; position: absolute; left: 6%; right: 6%; top: 19px; height: 2px;
+        background: linear-gradient(90deg, rgba(217, 167, 79, 0.9), rgba(176, 58, 44, 0.8), rgba(90, 80, 150, 0.9));
+        opacity: 0.7; border-radius: 2px;
+    }
+    .node {
+        position: relative; z-index: 2; width: 40px;
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+        background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .node .lantern {
+        width: 38px; height: 38px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: "KaiTi", "楷体", serif; font-size: 15px;
+        color: rgba(90, 66, 40, 0.75);
+        background: rgba(249, 242, 228, 0.88);
+        border: 2px solid rgba(125, 97, 71, 0.45);
+        transition: all 0.35s ease;
+    }
+    .node:hover .lantern { transform: translateY(-3px); border-color: var(--cinnabar); color: var(--cinnabar); }
+    .node.on .lantern {
+        background: radial-gradient(circle at 50% 35%, #ffc37a, var(--lantern) 70%);
+        border-color: #ffe2b0; color: #fff;
+        box-shadow: 0 0 20px rgba(240, 150, 70, 0.85), 0 4px 10px rgba(0, 0, 0, 0.3);
+        transform: scale(1.12) translateY(-2px);
+    }
+    .node.on.night-node .lantern {
+        background: radial-gradient(circle at 50% 35%, #b3a8ff, #4a3f8c 75%);
+        border-color: #cfc4ff;
+        box-shadow: 0 0 20px rgba(150, 135, 255, 0.7), 0 4px 10px rgba(0, 0, 0, 0.35);
+    }
+    .node .nm { font-family: "KaiTi", "楷体", serif; font-size: 11.5px; letter-spacing: 0.05em;
+        color: rgba(60, 45, 30, 0.75); white-space: nowrap; transition: color 0.3s; }
+    body.night .node .nm { color: rgba(239, 228, 207, 0.8); }
+    body.night .rail::before { opacity: 0.55; }
+    .node .phase { font-size: 11px; line-height: 1; margin-top: -2px; }
+    .node .phase.dn { color: #b5742a; }
+    .node .phase.nt { color: #c9bff2; }
+
+    @media (max-width: 860px) {
+        .slide { width: var(--cw, 64vw); }
+        .slide.port { width: var(--cw, 44vw); }
+        .stage { padding: 0 10px; }
+        .nav-arrow { width: 42px; height: 42px; }
+        .nav-prev { left: 8px; } .nav-next { right: 8px; }
+        .journal { padding: 4px 14px 0; }
+        .journal-card { padding: 12px 16px 10px; min-height: 120px; }
+        .j-intro { font-size: 13px; line-height: 1.7; max-height: 84px; overflow-y: auto; }
+        .node .nm { display: none; }
+        .rail { gap: 8px; }
+        .group-label-hide { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+</style>
+</head>
+<body>
+
+<!-- 昼夜天幕 -->
+<div class="sky sky-day"></div>
+<div class="sky sky-night"></div>
+<div class="orb orb-sun"></div>
+<div class="orb orb-moon"></div>
+<div class="hang-lanterns" id="hangLanterns"></div>
+<div class="motes" id="motes"></div>
+
+<div class="stage-wrap">
+    <header class="topbar">
+        <button class="back-btn" onclick="if(window.self!==window.top){window.top.postMessage({type:'xijie-back'},'*');}else{location.href='index.html';}">← 返回首页</button>
+        <div class="page-title"><span class="verb">访</span>烟火生活</div>
+        <div class="sky-badge" id="skyBadge">
+            <svg class="ico ico-sun" viewBox="0 0 24 24" fill="none" stroke="#b5742a" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></svg>
+            <svg class="ico ico-moon" viewBox="0 0 24 24" fill="none" stroke="#f3d9a6" stroke-width="2"><path d="M20 13.5A8 8 0 1 1 10.5 4 6.5 6.5 0 0 0 20 13.5z"/></svg>
+            <span id="skyText">白日西街</span>
+        </div>
+    </header>
+
+    <section class="stage" id="stage">
+        <div class="deck" id="deck"></div>
+        <button class="nav-arrow nav-prev" id="navPrev" aria-label="上一幕">◄</button>
+        <button class="nav-arrow nav-next" id="navNext" aria-label="下一幕">►</button>
+    </section>
+
+    <section class="journal">
+        <div class="journal-card">
+            <div class="j-pane" id="introPane">
+                <div class="j-meta">
+                    <span class="j-seal" id="jSeal">壹</span>
+                    <span class="j-cat" id="jCat">白日 · 市井闲趣</span>
+                </div>
+                <h2 class="j-title" id="jTitle"></h2>
+                <p class="j-intro" id="jIntro"></p>
+                <div class="j-tags" id="jTags"></div>
+            </div>
+            <div class="j-pane hidden" id="notesPane">
+                <div class="notes-head">
+                    <span class="j-seal">察</span>
+                    <span class="notes-title" id="nTitle"></span>
+                    <span class="notes-count" id="nCount"></span>
+                    <div class="notes-tools">
+                        <button class="mini-btn" id="nPrev" aria-label="上一处见闻">↑</button>
+                        <button class="mini-btn" id="nNext" aria-label="下一处见闻">↓</button>
+                        <button class="mini-btn exit-lens" id="nExit">返回简介</button>
+                    </div>
+                </div>
+                <p class="notes-desc" id="nDesc"></p>
+                <p class="notes-hint">点击照片上发光的小光点，把这处老街见闻收录进手札</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="controls">
+        <div class="rail" id="rail"></div>
+    </footer>
+</div>
+
+<script>
+(function () {
+    /* ============ 场景数据（文件名按实际画面映射） ============ */
+    var scenes = [
+        {
+            cat: "白日 · 市井闲趣", title: "古玩地摊", night: false, port: false,
+            img: "image/项目3/7.jpg", cap: "长廊灯影 · 蹲身淘珍",
+            intro: "白日的西街古巷，廊下挂满一盏盏国风灯笼。古玩小铺沿街摆开，玉石、把件、珠串、旧书在一方黑布上铺陈。摊主与客人蹲在地摊前，就着一件小玉件细细端详、慢慢议价，老街藏着的正是这份不慌不忙的市井闲趣。",
+            tags: ["国风灯笼", "古玩地摊", "玉石把件", "蹲身议价", "骑楼长廊"],
+            finds: [
+                { x: 26, y: 10, t: "国风灯笼长廊", d: "彩绘灯笼沿骑廊成串悬挂，灯面绘山水人物。白日里是装饰，入夜便成为西街最暖的灯火，昼夜两重天。" },
+                { x: 44, y: 80, t: "古玩地摊", d: "一块黑布、一地旧物就是一家店铺：玉佩、手串、铜钱、瓷片、旧书整齐铺开，任人翻看。" },
+                { x: 48, y: 90, t: "玉石小物件", d: "摊上最多玉石把件与珠串，质地雕工各异。淘客讲究眼缘，拿在手里反复摩挲，再与摊主论个高低。" },
+                { x: 24, y: 66, t: "蹲身淘货的客人", d: "淘古玩不兴正襟危坐，客人蹲下与货物平视，打光、辨纹、询价，一桩小买卖也能聊上半条街的家常。" },
+                { x: 82, y: 62, t: "守摊摊主", d: "摊主蹲在石阶上双手拢膝，不吆喝、不催促，等懂行的人自己停留——老街生意做的是熟客与缘分。" },
+                { x: 88, y: 38, t: "白墙木窗骑廊", d: "白墙勒青砖、深木花窗，正是前店后宅的骑楼走廊；摊位摆在廊下，晴可遮阳、雨可避水。" }
+            ]
+        },
+        {
+            cat: "夜幕 · 万灯流光", title: "灯笼街巷", night: true, port: false,
+            img: "image/项目3/1.jpg", cap: "万盏灯笼 · 流光古街",
+            intro: "夜幕降临，西街的灯笼被逐一点亮，暖黄与朱红在头顶交织成一片发光的穹顶。灯海顺着街道向远处层层收束，游人漫步其间，孩子踮起脚尖伸手够灯。光影落在每一张仰起的笑脸上，古街的氛围感在这一刻被拉满。",
+            tags: ["万盏灯笼", "灯海穹顶", "山水灯画", "游人漫步", "夜游打卡"],
+            finds: [
+                { x: 50, y: 12, t: "灯笼穹顶", d: "无数灯笼在街道上空横竖拉网、交错悬挂，抬头如同走进一座发光的屋顶，暖光把整条街染成温柔的金红色。" },
+                { x: 72, y: 8, t: "山水灯画", d: "大号宫灯灯面上手绘青绿山水、人物与楼阁，开灯后画影通透，一盏灯就是一件流动的民俗美术作品。" },
+                { x: 50, y: 27, t: "灯河纵深", d: "灯笼沿青石板长街两排向远方延伸，近大远小汇聚成一条灯河，把视线与脚步一起引向老街深处。" },
+                { x: 60, y: 48, t: "够灯的孩子", d: "小女孩骑在大人肩头、踮手去碰低垂的灯盏。灯火是景，也是孩子们关于老街最具体的童年记忆。" },
+                { x: 20, y: 58, t: "灯下游人", d: "街坊游客三三两两漫步灯海，有人驻足拍照，有人相视而笑——灯光把陌生人拢进了同一个温暖的夜晚。" },
+                { x: 10, y: 30, t: "骑楼夜色", d: "两侧白墙骑楼被灯影衬得柔和，廊下店铺灯火通明，古建轮廓在明暗之间比白日更显层次。" }
+            ]
+        },
+        {
+            cat: "白日 · 古韵书香", title: "少儿国学诵读", night: false, port: false,
+            img: "image/项目3/2.jpg", cap: "书童列队 · 齐诵经典",
+            intro: "古民居前的青砖广场上，一群孩子身着传统书童服饰，头戴儒巾、腰系布绦，双手捧着明黄色卷轴，齐声诵读中华经典。朗朗书声回荡在老屋与文化墙之间，这是西街面向少年儿童的传统文化研学——人在古街中、经典在口中，古韵书香扑面而来。",
+            tags: ["书童服饰", "黄色卷轴", "国学诵读", "文化研学", "古民居广场"],
+            finds: [
+                { x: 28, y: 60, t: "书童服饰", d: "灰青上衣配黑边、腰系黑绦、头戴四方儒巾，复原旧时学童青衿的模样，让孩子从衣着进入传统文化情境。" },
+                { x: 30, y: 55, t: "明黄卷轴", d: "每个孩子手捧一卷明黄读本，卷面印红格黑字、贴朱红印章，展开如同一道道小圣旨，仪式感十足。" },
+                { x: 30, y: 45, t: "儒巾", d: "头顶黑色方形巾帽是古代读书人的标志，衣冠整齐，呼应正衣冠、诵经典的开蒙礼传统。" },
+                { x: 47, y: 22, t: "青砖古民居门楼", d: "身后是青砖实砌的民居大门楼，条石门框、瓦檐压顶，诵读声就发生在真实的老街建筑之前。" },
+                { x: 11, y: 16, t: "诗词文化墙", d: "蓝底文化墙绘山水先贤、题古人诗句，把街区变成了一座露天的国学课堂。" },
+                { x: 52, y: 62, t: "齐声诵读队形", d: "孩子们在石板广场整齐列队、张口齐诵，读经、习礼、观古建，是一堂走在街上的研学课。" }
+            ]
+        },
+        {
+            cat: "夜幕 · 舞台狂欢", title: "主舞台晚会", night: true, port: false,
+            img: "image/项目3/3.jpg", cap: "露天舞台 · 人海夜市",
+            intro: "这是西街大型夜间文艺活动现场。巨型露天舞台桁架林立，追光与彩幕把夜空照得透亮，台下广场人山人海。小吃摊位沿人潮环绕排开，地方美食现烤现卖，红色帐篷与卡通气球点缀其间。演艺、美食与人潮汇聚，点燃了西街最热闹的夜晚。",
+            tags: ["露天舞台", "灯光桁架", "人山人海", "地方小吃", "夜市演艺"],
+            finds: [
+                { x: 62, y: 37, t: "露天大舞台", d: "街头广场搭起专业露天舞台，巨型 LED 屏滚动画面，演员登台献艺，古街也能办起不逊场馆的夜间演出。" },
+                { x: 57, y: 22, t: "灯光桁架", d: "钢桁架上成排吊挂摇头灯与帕灯，光束在夜空中交织，现代舞台技术为传统街区注入新活力。" },
+                { x: 42, y: 55, t: "人山人海", d: "台下广场被街坊游客站得满满当当，老少相携、举家出行，一场晚会把整条西街的人气聚到一起。" },
+                { x: 66, y: 52, t: "缙云烧饼摊", d: "人群中烧饼摊前热气腾腾，地方小吃跟着夜市走，看戏与解馋在同一条街上完成。" },
+                { x: 88, y: 42, t: "夜市帐篷", d: "红色帐篷一顶接一顶，灯光、招牌与食物香气共同搭起西街的夜间集市。" },
+                { x: 22, y: 52, t: "卡通气球", d: "人群上方浮起笑脸卡通气球，是夜市里最受孩子欢迎的流动摊位，为喧闹现场添了几分童趣。" }
+            ]
+        },
+        {
+            cat: "夜幕 · 飞檐灯火", title: "西街牌坊夜景", night: true, port: false,
+            img: "image/项目3/4.jpg", cap: "石坊生辉 · 古街门户",
+            intro: "飞檐翘角在夜色中亮起金边，这就是弋阳西街的标志性石牌坊。坊身遍刻回纹与水波纹，正中匾额隐现西街二字，红绸花球高挂；坊柱两侧红灯笼垂落，坊内古街灯火连绵、游人如织。作为进入老街的门户，它是游客必到的打卡景观，也是西街最醒目的精神坐标。",
+            tags: ["石牌坊", "飞檐翘角", "回纹水纹", "西街匾额", "夜间地标"],
+            finds: [
+                { x: 50, y: 8, t: "飞檐翘角", d: "牌坊顶部檐角向两侧高高翘起，檐脊覆瓦、脊端立兽，灯带勾勒轮廓，夜间如金凤停在街口。" },
+                { x: 35, y: 34, t: "回纹水纹雕柱", d: "白石坊柱通体浮雕回字纹与翻卷水波纹，繁密工整，寓意绵延不断、吉庆有余。" },
+                { x: 52, y: 27, t: "西街匾额 · 红绸", d: "正中横梁匾额上书西街，悬大红绸花与垂带，既点明地名，又添了浓浓的节庆仪式感。" },
+                { x: 28, y: 50, t: "檐下红灯笼", d: "坊门两侧各垂一串红圆灯笼，暖红光映在白石柱上，是中国夜市最经典的配色。" },
+                { x: 50, y: 63, t: "坊内灯河长街", d: "穿过牌坊门洞，古街两排灯火连成一线向深处延伸，牌坊像画框，框住整条流光溢彩的西街。" },
+                { x: 50, y: 83, t: "往来游人", d: "牌坊下人流不断，人们驻足、合影、穿行，石坊始终是西街人气最旺的集结点。" }
+            ]
+        },
+        {
+            cat: "夜幕 · 摩肩接踵", title: "牌坊下热闹夜市", night: true, port: false,
+            img: "image/项目3/5.jpg", cap: "气球人流 · 食摊飘香",
+            intro: "牌坊之下是整条夜市最拥挤、最鲜活的角落：一大束卡通气球被商贩高高举起，在人潮上方漂浮招摇；臭豆腐、烧饼等美食摊位林立，油锅滋滋作响。叫卖声、嬉闹声与食物香气升腾在一起，尽是西街最地道的烟火气息。",
+            tags: ["卡通气球", "流动商贩", "臭豆腐摊", "美食夜市", "摩肩接踵"],
+            finds: [
+                { x: 47, y: 46, t: "卡通气球束", d: "兔子、小熊、爱心等铝膜气球扎成一大束高举过人群，五彩斑斓地浮在夜空，是夜市最醒目的移动招牌。" },
+                { x: 51, y: 68, t: "气球商贩", d: "商贩抱着气球杆在人缝中穿行，专找带孩子的家庭，一根根细线牵起夜市的小小生意经。" },
+                { x: 71, y: 62, t: "臭豆腐小吃车", d: "红色招牌的餐车前食客排队，三轮餐车改装成移动厨房，一份份街边美味就地出炉。" },
+                { x: 62, y: 9, t: "牌坊飞檐", d: "夜市上方仍是那座亮着金边的石牌坊，高古的门楣与底下喧闹摊点人群，构成强烈而和谐的新旧对照。" },
+                { x: 14, y: 42, t: "摊位红帐篷", d: "舞台一侧的红色帐篷下排开各类美食杂货小摊，烟火气就从这一顶顶帐篷下升腾起来。" },
+                { x: 28, y: 70, t: "摩肩接踵的人潮", d: "整条石板街被人群填满，人们侧身穿行、就地品尝、呼朋唤友——夜市的热闹由密不透风的人气堆出。" }
+            ]
+        },
+        {
+            cat: "白日 · 非遗展演", title: "传统打糍粑", night: false, port: false,
+            img: "image/项目3/6.jpg", cap: "木槌石臼 · 非遗民俗",
+            intro: "老街广场上，一场非遗民俗打糍粑正在上演。赤膊壮汉围着粗重石臼，抡起长柄木槌，号子声中一槌接一槌捶打臼中糯米；白对襟褂、大红裤、黄布遮阳伞分外鲜明。四周围满游客举机拍摄，铜人雕塑静静伫立。老手艺走出记忆，在西街被热气腾腾地重新演绎。",
+            tags: ["石臼木槌", "打糍粑", "非遗民俗", "壮汉号子", "现场展演"],
+            finds: [
+                { x: 40, y: 68, t: "石臼", d: "整石凿成的粗粝石臼盛着热气腾腾的糯米，是打糍粑的主战场，石面沾满被反复捶打的米团。" },
+                { x: 64, y: 30, t: "抡起的木槌", d: "长柄硬木木槌一柄好几斤重，背景中的壮汉正将它高高举过头顶，下一瞬便重重砸向臼心。" },
+                { x: 45, y: 56, t: "俯身捶打的壮汉", d: "前手弓步俯身探臼翻米，与身后抡槌者一翻一打、配合默契，趁热把糯米捶得又黏又韧。" },
+                { x: 73, y: 48, t: "白褂红裤民俗装", d: "表演者统一白对襟褂、大红灯笼裤，既方便发力，又以鲜明色彩彰显仪式感。" },
+                { x: 33, y: 16, t: "黄布遮阳伞", d: "撑开的明黄色布伞为表演者遮阳，也像舞台上的一面面旗，把围观视线聚拢到石臼四周。" },
+                { x: 60, y: 38, t: "民俗铜人雕塑", d: "石臼旁立着一尊同样抡槌姿势的青铜人物雕塑，真人展演与铜像定格两两相望，老手艺在此古今接力。" },
+                { x: 88, y: 50, t: "围拍的游客", d: "里三层外三层的游客举着手机拍摄记录，打糍粑从旧时年节的家务，变成可看、可拍、可尝的活态非遗。" }
+            ]
+        }
+    ];
+    var CN = ["壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌"];
+
+    /* ============ 氛围装饰 ============ */
+    var motes = document.getElementById("motes");
+    for (var i = 0; i < 22; i++) {
+        var m = document.createElement("span");
+        m.className = "mote";
+        var s = 2 + Math.random() * 4;
+        m.style.width = s + "px"; m.style.height = s + "px";
+        m.style.left = Math.random() * 100 + "%";
+        m.style.animationDuration = (9 + Math.random() * 12) + "s";
+        m.style.animationDelay = (-Math.random() * 14) + "s";
+        motes.appendChild(m);
+    }
+    var hl = document.getElementById("hangLanterns");
+    [8, 26, 74, 90].forEach(function (left, idx) {
+        var d = document.createElement("div");
+        d.className = "hl";
+        d.style.left = left + "%";
+        d.style.animationDelay = (idx * 0.7) + "s";
+        var scale = 0.8 + Math.random() * 0.5;
+        d.style.transform = "scale(" + scale + ")";
+        d.innerHTML = '<div class="cord"></div><div class="body"></div><div class="tail"></div>';
+        hl.appendChild(d);
+    });
+    var starLayer = document.body;
+    [[12, 22], [30, 9], [58, 18], [74, 30], [88, 12], [42, 34], [6, 38], [95, 38]].forEach(function (p, idx) {
+        var st = document.createElement("span");
+        st.className = "star";
+        st.style.left = p[0] + "%"; st.style.top = p[1] + "%";
+        st.style.animationDelay = (idx * 0.4) + "s";
+        starLayer.appendChild(st);
+    });
+
+    /* ============ 走马盘构建 ============ */
+    var deck = document.getElementById("deck");
+    var slides = scenes.map(function (s, idx) {
+        var el = document.createElement("article");
+        el.className = "slide" + (s.port ? " port" : "");
+        el.setAttribute("aria-label", "第" + CN[idx] + "幕 " + s.title);
+        el.innerHTML =
+            '<div class="photo-card">' +
+                '<div class="tape"></div>' +
+                '<div class="photo-box">' +
+                    '<span class="day-stamp' + (s.night ? ' night-stamp' : '') + '">' + (s.night ? "夜幕" : "白日") + "</span>" +
+                    '<img class="main-img" src="' + s.img + '" alt="' + s.title + '">' +
+                    '<div class="photo-cap">' + s.cap + "</div>" +
+                "</div>" +
+            "</div>";
+        var box = el.querySelector(".photo-box");
+        s.finds.forEach(function (f, fi) {
+            var dot = document.createElement("button");
+            dot.className = "find-dot";
+            dot.style.left = f.x + "%"; dot.style.top = f.y + "%";
+            dot.setAttribute("aria-label", f.t);
+            dot.addEventListener("click", function (ev) {
+                ev.stopPropagation();
+                openFind(idx, fi);
+            });
+            box.appendChild(dot);
+        });
+        el.addEventListener("click", function () {
+            if (idx !== cur) goTo(idx);
+        });
+        deck.appendChild(el);
+        return el;
+    });
+
+    /* ============ 进度灯笼带 ============ */
+    var rail = document.getElementById("rail");
+    var nodes = scenes.map(function (s, idx) {
+        var b = document.createElement("button");
+        b.className = "node" + (s.night ? " night-node" : "");
+        b.type = "button";
+        b.innerHTML = '<span class="lantern">' + CN[idx] + "</span>" +
+            '<span class="phase ' + (s.night ? "nt" : "dn") + '">' + (s.night ? "月" : "日") + "</span>" +
+            '<span class="nm">' + s.title + "</span>";
+        b.addEventListener("click", function () { goTo(idx); });
+        rail.appendChild(b);
+        return b;
+    });
+
+    /* ============ 状态与换幕 ============ */
+    var cur = 0;
+    var jSeal = document.getElementById("jSeal");
+    var jCat = document.getElementById("jCat");
+    var jTitle = document.getElementById("jTitle");
+    var jIntro = document.getElementById("jIntro");
+    var jTags = document.getElementById("jTags");
+    var skyText = document.getElementById("skyText");
+    var navPrev = document.getElementById("navPrev");
+    var navNext = document.getElementById("navNext");
+
+    function layoutDeck() {
+        slides.forEach(function (el, idx) {
+            var off = idx - cur;
+            var n = slides.length;
+            if (off > n / 2) off -= n;
+            if (off < -n / 2) off += n;
+            var abs = Math.abs(off);
+            var tf;
+            if (abs > 2) {
+                tf = "translate(-50%,-50%) translateX(" + (off > 0 ? 130 : -130) + "%) scale(0.5)";
+                el.style.opacity = "0";
+                el.style.pointerEvents = "none";
+                el.style.zIndex = "1";
+                el.style.filter = "blur(4px)";
+            } else if (off === 0) {
+                tf = "translate(-50%,-50%) translateX(0) scale(1) rotateY(0deg)";
+                el.style.opacity = "1";
+                el.style.pointerEvents = "auto";
+                el.style.zIndex = "30";
+                el.style.filter = "none";
+            } else {
+                var x = off * 52, ry = -off * 26;
+                tf = "translate(-50%,-50%) translateX(" + x + "%) scale(" + (abs === 1 ? 0.8 : 0.64) + ") rotateY(" + ry + "deg)";
+                el.style.opacity = abs === 1 ? "0.6" : "0.2";
+                el.style.pointerEvents = "auto";
+                el.style.zIndex = abs === 1 ? "20" : "10";
+                el.style.filter = "blur(" + (abs === 1 ? 1.5 : 3) + "px)";
+            }
+            el.style.transform = tf;
+            el.classList.toggle("is-current", idx === cur);
+        });
+    }
+
+    function goTo(i) {
+        if (i === cur) return;
+        closeFind();
+        cur = (i + scenes.length) % scenes.length;
+        render();
+    }
+    function render() {
+        var s = scenes[cur];
+        layoutDeck();
+        nodes.forEach(function (nd, idx) { nd.classList.toggle("on", idx === cur); });
+        navPrev.disabled = cur === 0;
+        navNext.innerHTML = cur >= scenes.length - 1 ? "↺" : "►";
+
+        document.body.classList.toggle("night", s.night);
+        skyText.textContent = s.night ? "夜幕西街" : "白日西街";
+
+        // 手札换幕动画
+        var pane = document.getElementById("introPane");
+        pane.style.opacity = "0"; pane.style.transform = "translateY(8px)";
+        setTimeout(function () {
+            jSeal.textContent = CN[cur];
+            jCat.textContent = s.cat;
+            jTitle.textContent = s.title;
+            jIntro.textContent = s.intro;
+            jTags.innerHTML = s.tags.map(function (t) { return "<span>" + t + "</span>"; }).join("");
+            pane.style.opacity = "1"; pane.style.transform = "translateY(0)";
+        }, 240);
+    }
+    document.getElementById("introPane").style.transition = "opacity .3s ease, transform .3s ease";
+
+    navPrev.addEventListener("click", function () { if (cur > 0) goTo(cur - 1); });
+    navNext.addEventListener("click", function () {
+        if (cur >= scenes.length - 1) { closeFind(); cur = 0; render(); }
+        else goTo(cur + 1);
+    });
+    document.addEventListener("keydown", function (e) {
+        if (viewing) {
+            var nn = scenes[cur].finds.length;
+            if (e.key === "ArrowUp" || e.key === "ArrowLeft") selectFind((curFind - 1 + nn) % nn);
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") selectFind((curFind + 1) % nn);
+            if (e.key === "Escape") closeFind();
+            return;
+        }
+        if (e.key === "ArrowLeft" && cur > 0) goTo(cur - 1);
+        if (e.key === "ArrowRight") {
+            if (cur < scenes.length - 1) goTo(cur + 1);
+            else { cur = 0; render(); }
+        }
+    });
+
+    /* ============ 光点见闻手札（点击图中光点，注解就地展开在手札卡） ============ */
+    var viewing = false, curFind = 0;
+    var introPane = document.getElementById("introPane");
+    var notesPane = document.getElementById("notesPane");
+    var nTitle = document.getElementById("nTitle");
+    var nCount = document.getElementById("nCount");
+    var nDesc = document.getElementById("nDesc");
+
+    function dotsOf(i) { return slides[i].querySelectorAll(".find-dot"); }
+
+    function openFind(sceneIdx, fi) {
+        viewing = true;
+        introPane.classList.add("hidden");
+        notesPane.classList.remove("hidden");
+        selectFind(fi);
+    }
+    function closeFind() {
+        if (!viewing) return;
+        viewing = false;
+        dotsOf(cur).forEach(function (d) { d.classList.remove("on"); });
+        notesPane.classList.add("hidden");
+        introPane.classList.remove("hidden");
+    }
+    function selectFind(i) {
+        var s = scenes[cur], f = s.finds[i];
+        curFind = i;
+        nTitle.textContent = (i + 1) + ". " + f.t;
+        nCount.textContent = "见闻 " + (i + 1) + " / " + s.finds.length;
+        nDesc.textContent = f.d;
+        dotsOf(cur).forEach(function (d, di) { d.classList.toggle("on", di === i); });
+    }
+    document.getElementById("nPrev").addEventListener("click", function () {
+        if (!viewing) return;
+        var n = scenes[cur].finds.length;
+        selectFind((curFind - 1 + n) % n);
+    });
+    document.getElementById("nNext").addEventListener("click", function () {
+        if (!viewing) return;
+        selectFind((curFind + 1) % scenes[cur].finds.length);
+    });
+    document.getElementById("nExit").addEventListener("click", closeFind);
+
+    /* 初始：先按舞台实际宽高算出照片尺寸，保证不溢出遮挡手札 */
+    var stageEl = document.getElementById("stage");
+    function fitStage() {
+        var r = stageEl.getBoundingClientRect();
+        if (r.height < 40) return;
+        var narrow = window.matchMedia("(max-width: 860px)").matches;
+        var maxW = narrow ? r.width * 0.76 : r.width * 0.6;
+        var byH = (r.height - 10) * (4 / 3);   // 4:3 照片在舞台高度内允许的最大宽
+        var w = Math.max(200, Math.min(maxW, 600, byH));
+        deck.style.setProperty("--cw", w + "px");
+        layoutDeck();
+    }
+    window.addEventListener("resize", fitStage);
+    if (window.ResizeObserver) { new ResizeObserver(fitStage).observe(stageEl); }
+    fitStage();
+    render();
+})();
+</script>
+<script src="music.js" defer></script>
+</body>
+</html>

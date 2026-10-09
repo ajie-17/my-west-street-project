@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>观古街今貌 · 弋阳西街</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --ink: #2a231c;
+        --ink-soft: #4c4338;
+        --paper: #f7f1e6;
+        --paper-deep: #ede2cd;
+        --tile: #43505a;
+        --cinnabar: #a83a2b;
+        --wood: #7d6147;
+        --gold: #c8a45c;
+    }
+    html, body { height: 100%; }
+    body {
+        font-family: "SimSun", "宋体", "Songti SC", "Noto Serif SC", serif;
+        color: var(--ink-soft);
+        background:
+            /* 宣纸纹理 */
+            repeating-linear-gradient(0deg, rgba(90, 70, 40, 0.03) 0 1px, transparent 1px 4px),
+            /* 暖色蒙版：压住插画饱和度，保证曲线与文字可读 */
+            linear-gradient(rgba(247, 241, 230, 0.62), rgba(243, 235, 220, 0.66)),
+            /* 项目一背景插画 */
+            url("image/项目1/项目一背景.jpg") center center / cover no-repeat;
+        background-attachment: fixed;
+        overflow: hidden;
+    }
+
+    .page {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ===== 顶部栏 ===== */
+    .topbar {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 28px;
+        background: linear-gradient(180deg, rgba(247, 241, 230, 0.92), rgba(247, 241, 230, 0.55));
+        border-bottom: 1px solid rgba(125, 97, 71, 0.22);
+        backdrop-filter: blur(4px);
+    }
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        font-family: inherit;
+        font-size: 15px;
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid rgba(125, 97, 71, 0.5);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .back-btn:hover { background: var(--paper-deep); border-color: var(--tile); transform: translateX(-2px); }
+    .group-label {
+        font-family: "KaiTi", "楷体", serif;
+        font-size: 15px;
+        letter-spacing: 0.2em;
+        color: var(--wood);
+    }
+    .page-title {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: clamp(26px, 3.4vw, 38px);
+        letter-spacing: 0.16em;
+        color: var(--ink);
+        padding-left: 0.16em;
+    }
+    .page-title .verb { color: var(--cinnabar); font-weight: bold; }
+
+    /* ===== 旅程舞台 ===== */
+    .stage {
+        position: relative;
+        flex: 1;
+        overflow: hidden;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .stage.dragging { cursor: grabbing; }
+    .stage.animating { cursor: default; }
+    /* 镜头世界层：曲线、节点、光点、卡片都在此层内，由 JS 控制缩放平移，也可自由拖拽 */
+    .world {
+        position: absolute;
+        inset: 0;
+        transform-origin: 0 0;
+        will-change: transform;
+        touch-action: none;
+    }
+    /* 拖动时不要把卡片/缩略图当成图片拖走 */
+    .stage img { -webkit-user-drag: none; user-drag: none; }
+    .curve-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+    /* 蜿蜒的主曲线（行程按比例渐进显现，由 JS 控制 dashoffset） */
+    .curve-path {
+        fill: none;
+        stroke: rgba(125, 97, 71, 0.38);
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+    /* 曲线的朱砂高光描边 */
+    .curve-glow {
+        fill: none;
+        stroke: var(--cinnabar);
+        stroke-width: 1.4;
+        stroke-linecap: round;
+        opacity: 0.5;
+        filter: drop-shadow(0 0 5px rgba(168, 58, 43, 0.5));
+    }
+
+    /* 节点：未到访的节点完全隐藏，只在旅程抵达时出现 */
+    .node {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        z-index: 5;
+        visibility: hidden;
+    }
+    .node.reachable { visibility: visible; }
+    .node-dot {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--paper);
+        border: 2px solid var(--wood);
+        transition: all 0.3s ease;
+    }
+    .node.reachable:hover .node-dot { border-color: var(--cinnabar); transform: scale(1.3); }
+    .node.active .node-dot {
+        background: var(--cinnabar);
+        border-color: var(--cinnabar);
+        box-shadow: 0 0 0 5px rgba(168, 58, 43, 0.18), 0 0 14px rgba(168, 58, 43, 0.6);
+    }
+    /* 节点上的缩略图（已到访的站点可见） */
+    .node-thumb {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 46px;
+        height: 34px;
+        border-radius: 4px;
+        object-fit: cover;
+        border: 2px solid var(--paper);
+        box-shadow: 0 3px 10px rgba(16, 12, 8, 0.3);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        opacity: 0.9;
+        transition: opacity 0.3s ease;
+    }
+    .node.active .node-thumb { opacity: 0; } /* 激活节点由放大卡片替代 */
+    .node .node-label {
+        position: absolute;
+        top: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-family: "KaiTi", "楷体", serif;
+        font-size: 13px;
+        color: var(--ink-soft);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    .node.reachable:hover .node-label,
+    .node.active .node-label { opacity: 1; }
+
+    /* 沿曲线行走的光点（旅程的"脚步"） */
+    .traveler {
+        position: absolute;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--cinnabar);
+        box-shadow: 0 0 12px 4px rgba(168, 58, 43, 0.65);
+        transform: translate(-50%, -50%);
+        z-index: 6;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    /* ===== 样貌卡片（每站到站后放大观赏） ===== */
+    .appearance-card {
+        position: absolute;
+        width: min(300px, 46vw);
+        background: rgba(247, 241, 230, 0.97);
+        border: 1px solid rgba(67, 80, 90, 0.18);
+        border-radius: 6px;
+        box-shadow: 0 24px 60px rgba(16, 12, 8, 0.3);
+        overflow: hidden;
+        z-index: 8;
+        will-change: transform, opacity;
+        transform: translate(-50%, -50%) scale(0.15);
+        opacity: 0;
+        transform-origin: center center;
+    }
+    .appearance-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(0deg, rgba(90, 70, 40, 0.02) 0 1px, transparent 1px 3px);
+        pointer-events: none;
+        z-index: 1;
+    }
+    .card-image-wrap {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+    }
+    .card-image-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .card-image-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 60%, rgba(42, 35, 28, 0.35));
+        pointer-events: none;
+    }
+    .card-index {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 3px 10px;
+        background: rgba(168, 58, 43, 0.9);
+        color: var(--paper);
+        font-family: "KaiTi", "楷体", serif;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        border-radius: 3px;
+        z-index: 2;
+    }
+
+    /* ===== 文字介绍面板（固定于镜头之上，不随镜头移动） ===== */
+    .info-panel {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: min(330px, 32vw);
+        padding: 22px 24px;
+        background: rgba(247, 241, 230, 0.96);
+        border: 1px solid rgba(67, 80, 90, 0.18);
+        border-radius: 6px;
+        box-shadow: 0 16px 40px rgba(16, 12, 8, 0.25);
+        z-index: 9;
+        transition: opacity 0.4s ease;
+        user-select: text;
+        -webkit-user-select: text;
+    }
+    .info-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: repeating-linear-gradient(0deg, rgba(90, 70, 40, 0.02) 0 1px, transparent 1px 3px);
+        pointer-events: none;
+    }
+    .info-title {
+        position: relative;
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: clamp(22px, 2.6vw, 28px);
+        letter-spacing: 0.1em;
+        color: var(--ink);
+        margin-bottom: 12px;
+    }
+    .info-title::before {
+        content: "❖";
+        color: var(--cinnabar);
+        margin-right: 8px;
+        font-size: 0.7em;
+    }
+    .info-intro {
+        position: relative;
+        font-size: 14.5px;
+        line-height: 1.9;
+        letter-spacing: 0.03em;
+        color: var(--ink-soft);
+    }
+
+    /* ===== 底部控制 ===== */
+    .controls {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 32px 22px;
+        background: linear-gradient(0deg, rgba(247, 241, 230, 0.95), rgba(247, 241, 230, 0.5));
+        border-top: 1px solid rgba(125, 97, 71, 0.22);
+    }
+    .progress {
+        font-family: "KaiTi", "楷体", serif;
+        font-size: 16px;
+        color: var(--wood);
+        letter-spacing: 0.15em;
+    }
+    .progress .cur { color: var(--cinnabar); font-weight: bold; font-size: 20px; }
+    .progress .sep { margin: 0 6px; opacity: 0.5; }
+    .continue-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 30px;
+        font-family: inherit;
+        font-size: 17px;
+        letter-spacing: 0.12em;
+        color: var(--paper);
+        background: var(--tile);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        box-shadow: 0 6px 18px rgba(67, 80, 90, 0.35);
+    }
+    .continue-btn:hover { background: var(--cinnabar); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(168, 58, 43, 0.4); }
+    .continue-btn:active { transform: translateY(0); }
+    .continue-btn .arrow { transition: transform 0.25s ease; }
+    .continue-btn:hover .arrow { transform: translateX(4px); }
+    .continue-btn.finished { background: var(--cinnabar); }
+
+    @media (max-width: 760px) {
+        .topbar { padding: 12px 16px; }
+        .back-btn { padding: 6px 12px; font-size: 13px; }
+        .group-label { display: none; }
+        .controls { padding: 12px 16px 16px; }
+        .continue-btn { padding: 11px 22px; font-size: 15px; }
+        .appearance-card { width: min(280px, 60vw); }
+        /* 窄屏介绍面板移到底部，给居中的卡片让出空间 */
+        .info-panel {
+            top: auto;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            width: auto;
+            padding: 14px 16px;
+            max-height: 34vh;
+            overflow-y: auto;
+        }
+        .info-title { font-size: 19px; margin-bottom: 6px; }
+        .info-intro { font-size: 13px; line-height: 1.7; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; }
+    }
+</style>
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <button class="back-btn" onclick="if(window.self!==window.top){window.top.postMessage({type:'xijie-back'},'*');}else{location.href='index.html';}">← 返回首页</button>
+        <div class="page-title"><span class="verb">观</span>古街今貌</div>
+        <div class="group-label">第一组 · 街区时间线</div>
+    </header>
+
+    <main class="stage" id="stage">
+        <!-- 镜头世界层：行走时整体平移缩放，只聚焦当前这一站 -->
+        <div class="world" id="world">
+            <svg class="curve-svg" id="curveSvg" viewBox="0 0 1000 640" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <path id="curvePath" class="curve-path"
+                      d="M 80 590
+                         C 200 590, 280 545, 400 545
+                         C 520 545, 600 590, 720 590
+                         C 840 590, 930 545, 930 475
+                         C 930 405, 820 405, 700 405
+                         C 580 405, 500 360, 500 290
+                         C 500 220, 620 220, 740 220
+                         C 860 220, 930 175, 930 110
+                         C 930 55, 800 55, 660 70
+                         C 520 85, 460 130, 460 190"/>
+                <path id="curveGlow" class="curve-glow"
+                      d="M 80 590
+                         C 200 590, 280 545, 400 545
+                         C 520 545, 600 590, 720 590
+                         C 840 590, 930 545, 930 475
+                         C 930 405, 820 405, 700 405
+                         C 580 405, 500 360, 500 290
+                         C 500 220, 620 220, 740 220
+                         C 860 220, 930 175, 930 110
+                         C 930 55, 800 55, 660 70
+                         C 520 85, 460 130, 460 190"/>
+            </svg>
+
+            <!-- 节点容器（由 JS 生成） -->
+            <div id="nodesLayer"></div>
+            <!-- 沿曲线行走的光点 -->
+            <div class="traveler" id="traveler"></div>
+
+            <!-- 样貌卡片（到站后放大） -->
+            <article class="appearance-card" id="card">
+                <div class="card-image-wrap">
+                    <span class="card-index" id="cardIndex">壹</span>
+                    <img id="cardImg" src="" alt="">
+                </div>
+            </article>
+        </div>
+
+        <!-- 文字介绍面板（固定在镜头之外） -->
+        <aside class="info-panel" id="infoPanel">
+            <h2 class="info-title" id="cardTitle"></h2>
+            <p class="info-intro" id="cardIntro"></p>
+        </aside>
+    </main>
+
+    <footer class="controls">
+        <div class="progress">
+            <span class="cur" id="curNum">1</span>
+            <span class="sep">/</span>
+            <span id="totalNum">5</span>
+            <span style="margin-left:10px;opacity:.7;">样貌</span>
+        </div>
+        <button class="continue-btn" id="continueBtn">
+            <span>启程探访</span>
+            <span class="arrow">→</span>
+        </button>
+    </footer>
+</div>
+
+<script>
+(function () {
+    // ===== 样貌数据（使用项目1实拍照片） =====
+    const appearances = [
+        { index: "壹",   title: "八大山人",   intro: "八大山人，明末清初著名书画家，其遗韵在西街的笔墨与丹青间流传。此处所存的书画遗迹，笔简意赅、意境冷逸，是老街文脉中清雅的一笔。", img: "image/项目1/badashanren.jpg" },
+        { index: "贰",   title: "古壁画",     intro: "老屋墙面上的古壁画，是岁月留给西街的彩色记忆。虽经风雨剥蚀，线条与色彩仍依稀可辨，向今人诉说着当年匠人的巧思与街巷的繁华。", img: "image/项目1/bihua.jpg" },
+        { index: "叁",   title: "富春一帆",   intro: "富春水畔，一帆孤影。西街依水而兴，舟楫往来曾是老街最寻常的景致。帆影远去，留下的是水与街相依相生的古老记忆。", img: "image/项目1/fuchunyifan.jpg" },
+        { index: "肆",   title: "老供销社",   intro: "供销社是计划经济时代西街的标志性场所。斑驳的柜台、褪色的招牌，记录着一代人凭票购物的生活日常，也是老街变迁中难以抹去的时代印记。", img: "image/项目1/gongxiaoshe.jpg" },
+        { index: "伍",   title: "古井",       intro: "西街的古井曾养育了一代又一代街坊。井沿被绳索磨出深深的凹痕，井水清冽甘甜。如今虽已不再取水，但这口井仍是老街烟火气息最鲜活的见证。", img: "image/项目1/gujing.jpg" },
+        { index: "陆",   title: "街尾",       intro: "走到西街的尽头，街巷渐次收窄，老屋的轮廓在夕阳下拉出长长的影子。街尾不只是空间的终点，更是回望整条老街历史的一处驻足之地。", img: "image/项目1/jiewei.jpg" },
+        { index: "柒",   title: "弋阳年糕",   intro: "弋阳年糕以大禾米为原料，口感柔韧、香糯可口，是西街乃至弋阳最具代表性的地方味道。一块年糕，承载着乡土的馈赠与节庆的欢喜。", img: "image/项目1/niangao.jpg" },
+        { index: "捌",   title: "欧阳致远",   intro: "欧阳致远，与西街渊源深厚的乡贤人物。其事迹与品格在街坊间口耳相传，是老街人文脉络中令人感怀的一页，激励着后人耕读传家。", img: "image/项目1/ouyangzhiyuan.jpg" },
+        { index: "玖",   title: "古牌坊",     intro: "矗立在西街的古牌坊，以石为骨、以文为魂，镌刻着老街的荣耀与规制。飞檐斗拱间，是先人的期许与街巷的精神象征，历经风雨依然岿然。", img: "image/项目1/paifang.jpg" },
+        { index: "拾",   title: "古桥",       intro: "西街的古桥横跨水面，青石板桥面被岁月打磨得光滑温润。桥身的青苔与雕刻，记录着来往行人的脚步，也连接着老街的过去与现在。", img: "image/项目1/qiao.jpg" },
+        { index: "拾壹", title: "铁匠铺",     intro: "叮当作响的铁匠铺，曾是西街最热闹的手作工坊。通红的炉火、翻飞的铁锤，锻造出农具与生活器具，也锻造了老街人勤劳坚韧的精气神。", img: "image/项目1/tiejiangpu.jpg" },
+        { index: "拾贰", title: "王军",       intro: "王军，与西街相关的人物代表。其故事融入街巷的日常，是老街人文画卷中真实而温暖的一笔，让历史不再遥远，变得可触可感。", img: "image/项目1/wangjun.jpg" },
+        { index: "拾叁", title: "徐霞客",     intro: "明代旅行家徐霞客曾游历至此，其足迹与记述为西街增添了厚重的人文底色。循着霞客的目光，西街的山水街巷更具一番探幽访古的意趣。", img: "image/项目1/xuxiake.jpg" },
+        { index: "拾肆", title: "弋阳腔",     intro: "弋阳腔是中国戏曲史上的重要声腔，发源于弋阳并流传深远。西街的戏台与唱腔，曾响彻街巷，是老街最富韵律的文化记忆，至今余音绕梁。", img: "image/项目1/yiyangqiang.jpg" },
+        { index: "拾伍", title: "老邮局",     intro: "西街的老邮局，墨绿色的邮筒与斑驳的柜台，是书信时代的温情见证。一封封家书从这里寄出，把老街的牵挂送往远方，也连接着游子与故乡。", img: "image/项目1/youju.jpg" },
+        { index: "拾陆", title: "张景江",     intro: "张景江，与西街有着不解之缘的乡贤。其生平与贡献在老街流传，成为西街人文精神的组成部分，也为后辈留下了值得铭记的乡土楷模。", img: "image/项目1/zhangjingjiang.jpg" }
+    ];
+
+    const stage = document.getElementById("stage");
+    const world = document.getElementById("world");
+    const svg = document.getElementById("curveSvg");
+    const path = document.getElementById("curvePath");
+    const glow = document.getElementById("curveGlow");
+    const nodesLayer = document.getElementById("nodesLayer");
+    const traveler = document.getElementById("traveler");
+    const card = document.getElementById("card");
+    const cardImg = document.getElementById("cardImg");
+    const cardIndex = document.getElementById("cardIndex");
+    const cardTitle = document.getElementById("cardTitle");
+    const cardIntro = document.getElementById("cardIntro");
+    const continueBtn = document.getElementById("continueBtn");
+    const curNum = document.getElementById("curNum");
+    const totalNum = document.getElementById("totalNum");
+
+    let current = 0;
+    let maxReached = 0;   // 已到访的最远一站（已走过的路始终保留）
+    let animating = false;
+    let cameraScale = 1;
+    let pathLen = 0;
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // 根据样貌数量自动沿曲线均匀分布站点
+    const NODE_FRACTIONS = appearances.map((_, i) =>
+        appearances.length === 1 ? 0.5 : (i / (appearances.length - 1)) * 0.94
+    );
+
+    totalNum.textContent = appearances.length;
+
+    // ===== 坐标换算 =====
+    function vbToStage(x, y) {
+        const vb = svg.viewBox.baseVal;
+        const sx = svg.clientWidth / vb.width;
+        const sy = svg.clientHeight / vb.height;
+        return { x: x * sx, y: y * sy };
+    }
+    function pointAt(fraction) {
+        const pt = path.getPointAtLength(pathLen * fraction);
+        return vbToStage(pt.x, pt.y);
+    }
+
+    // ===== 镜头：把世界中的某点平移放大到舞台焦点 =====
+    function isNarrow() { return window.matchMedia("(max-width: 760px)").matches; }
+    function scaleFor() {
+        return Math.min(2, Math.max(1.15, stage.clientWidth / 620));
+    }
+    function focalPoint() {
+        return {
+            x: stage.clientWidth * (isNarrow() ? 0.5 : 0.62),
+            y: stage.clientHeight * (isNarrow() ? 0.40 : 0.46)
+        };
+    }
+    function cameraAt(p, s) {
+        const f = focalPoint();
+        return { tx: f.x - p.x * s, ty: f.y - p.y * s, s: s };
+    }
+    // 记录当前镜头参数，供自由拖拽从当前位置接续
+    let cam = { tx: 0, ty: 0, s: 1 };
+    function applyCamera(c) {
+        cam.tx = c.tx; cam.ty = c.ty; cam.s = c.s;
+        world.style.transform = "translate(" + c.tx + "px," + c.ty + "px) scale(" + c.s + ")";
+    }
+
+    // ===== 道路渐进显现：只画出已走过的部分 =====
+    function measurePath() {
+        pathLen = path.getTotalLength();
+        path.style.strokeDasharray = pathLen;
+        glow.style.strokeDasharray = pathLen;
+    }
+    function setReveal(fraction) {
+        const offset = pathLen * (1 - Math.max(0, Math.min(1, fraction)));
+        path.style.strokeDashoffset = offset;
+        glow.style.strokeDashoffset = offset;
+    }
+
+    // ===== 站点节点（未到访的隐藏） =====
+    function buildNodes() {
+        nodesLayer.innerHTML = "";
+        appearances.forEach((a, i) => {
+            const p = pointAt(NODE_FRACTIONS[i]);
+            const node = document.createElement("div");
+            node.className = "node" + (i <= maxReached ? " reachable" : "") + (i === current ? " active" : "");
+            node.style.left = p.x + "px";
+            node.style.top = p.y + "px";
+            node.innerHTML =
+                '<span class="node-dot"></span>' +
+                '<img class="node-thumb" src="' + a.img + '" alt="' + a.title + '">' +
+                '<span class="node-label">' + a.title + '</span>';
+            node.addEventListener("click", () => {
+                if (i <= maxReached) goTo(i);  // 只能回到已到访的站点
+            });
+            nodesLayer.appendChild(node);
+        });
+    }
+
+    // ===== 卡片内容与位置 =====
+    function renderCard(i) {
+        const a = appearances[i];
+        const panel = document.getElementById("infoPanel");
+        panel.style.opacity = 0;
+        setTimeout(() => {
+            cardImg.src = a.img;
+            cardImg.alt = a.title;
+            cardIndex.textContent = a.index;
+            cardTitle.textContent = a.title;
+            cardIntro.textContent = a.intro;
+            curNum.textContent = i + 1;
+            panel.style.opacity = 1;
+        }, 200);
+    }
+    function setCardAt(p, scale, opacity) {
+        card.style.left = p.x + "px";
+        card.style.top = p.y + "px";
+        card.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+        card.style.opacity = opacity;
+    }
+    function shrinkCard(p) {
+        const anim = card.animate([
+            { transform: "translate(-50%, -50%) scale(1)", opacity: 1 },
+            { transform: "translate(-50%, -50%) scale(0.15)", opacity: 0 }
+        ], { duration: 380, easing: "cubic-bezier(0.55, 0, 0.6, 0.3)", fill: "forwards" });
+        return anim.finished.then(() => setCardAt(p, 0.15, 0));
+    }
+    function growCard(p) {
+        setCardAt(p, 0.15, 0);
+        const anim = card.animate([
+            { transform: "translate(-50%, -50%) scale(0.15)", opacity: 0 },
+            { transform: "translate(-50%, -50%) scale(1)", opacity: 1 }
+        ], { duration: 520, easing: "cubic-bezier(0.22, 1.4, 0.36, 1)", fill: "forwards" });
+        return anim.finished.then(() => setCardAt(p, 1, 1));
+    }
+
+    // ===== 通用补间 =====
+    function tween(duration, onFrame, easing) {
+        return new Promise(resolve => {
+            if (prefersReduced || duration <= 0) { onFrame(1); resolve(); return; }
+            let start = null;
+            function step(ts) {
+                if (start === null) start = ts;
+                const t = Math.min(1, (ts - start) / duration);
+                onFrame(easing ? easing(t) : t);
+                if (t < 1) requestAnimationFrame(step);
+                else resolve();
+            }
+            requestAnimationFrame(step);
+        });
+    }
+    const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+
+    // ===== 走一站：缩卡 → 红点沿河行走（镜头跟随、道路延伸）→ 到站放大 =====
+    function goTo(i) {
+        if (animating) return;
+        if (i >= appearances.length) { finishJourney(); return; }
+        if (i === current) return;
+        animating = true;
+        cancelInertia();
+        stage.classList.add("animating");
+        overview = false;  // 点击节点离开俯瞰视角后，按钮恢复"完整查看曲线"
+
+        const fromFrac = NODE_FRACTIONS[current];
+        const toFrac = NODE_FRACTIONS[i];
+        const fromP = pointAt(fromFrac);
+
+        // 若用户此前自由拖动过镜头，缩卡的同时把镜头平滑送回出发站
+        const camBack = cameraAt(fromP, cameraScale);
+        const camPrev = { tx: cam.tx, ty: cam.ty };
+        tween(380, t => {
+            applyCamera({
+                tx: camPrev.tx + (camBack.tx - camPrev.tx) * t,
+                ty: camPrev.ty + (camBack.ty - camPrev.ty) * t,
+                s: cameraScale
+            });
+        }, easeInOutCubic);
+
+        shrinkCard(fromP).then(() => {
+            nodesLayer.querySelectorAll(".node")[current].classList.remove("active");
+
+            // 光点启程
+            traveler.style.left = fromP.x + "px";
+            traveler.style.top = fromP.y + "px";
+            traveler.style.opacity = "1";
+
+            const distance = Math.abs(toFrac - fromFrac);
+            const duration = Math.max(650, Math.min(1500, distance * 2600));
+            const revealFloor = NODE_FRACTIONS[maxReached];
+
+            tween(duration, t => {
+                const frac = fromFrac + (toFrac - fromFrac) * t;
+                const p = pointAt(frac);
+                // 光点与镜头同行
+                traveler.style.left = p.x + "px";
+                traveler.style.top = p.y + "px";
+                applyCamera(cameraAt(p, cameraScale));
+                // 道路在脚步下延伸（回头路不抹除已探索的部分）
+                setReveal(Math.max(revealFloor, frac));
+            }, easeInOutCubic).then(() => {
+                traveler.style.opacity = "0";
+
+                current = i;
+                maxReached = Math.max(maxReached, i);
+                buildNodes();
+                renderCard(current);
+
+                const toP = pointAt(toFrac);
+                applyCamera(cameraAt(toP, cameraScale));
+                growCard(toP).then(() => {
+                    animating = false;
+                    stage.classList.remove("animating");
+                    updateContinueBtn();
+                });
+            });
+        });
+    }
+
+    // ===== 走完最后一站后的状态：再次点击按钮可完整查看整条曲线 =====
+    let finished = false;   // 全部站点是否已到访
+    let overview = false;   // 当前是否处于"完整曲线"俯瞰视角
+
+    function finishJourney() {
+        finished = true;
+        overview = false;
+        continueBtn.classList.add("finished");
+        continueBtn.disabled = false;
+        updateContinueBtn();
+    }
+
+    // 计算让整条曲线完整入镜的镜头参数（按曲线实际包围盒等比适配）
+    function fitCurveCamera() {
+        const bb = path.getBBox();
+        const vb = svg.viewBox.baseVal;
+        const sx = svg.clientWidth / vb.width;
+        const sy = svg.clientHeight / vb.height;
+        const bx = bb.x * sx, by = bb.y * sy;
+        const bw = bb.width * sx, bh = bb.height * sy;
+        const W = stage.clientWidth, H = stage.clientHeight;
+        const pad = 70;
+        const s = Math.min(W / (bw + pad * 2), H / (bh + pad * 2));
+        return { tx: W / 2 - (bx + bw / 2) * s, ty: H / 2 - (by + bh / 2) * s, s: s };
+    }
+
+    // 拉远镜头，完整展示整条曲线（道路全部显现、卡片收起）
+    function showOverview() {
+        if (animating) return;
+        animating = true;
+        cancelInertia();
+        stage.classList.add("animating");
+        overview = true;
+        updateContinueBtn();
+
+        const p = pointAt(NODE_FRACTIONS[current]);
+        const camEnd = fitCurveCamera();
+        const camPrev = { tx: cam.tx, ty: cam.ty, s: cam.s };
+        const revealStart = NODE_FRACTIONS[maxReached];
+        traveler.style.opacity = "0";
+        shrinkCard(p);
+
+        tween(900, t => {
+            applyCamera({
+                tx: camPrev.tx + (camEnd.tx - camPrev.tx) * t,
+                ty: camPrev.ty + (camEnd.ty - camPrev.ty) * t,
+                s: camPrev.s + (camEnd.s - camPrev.s) * t
+            });
+            setReveal(revealStart + (1 - revealStart) * t);
+        }, easeInOutCubic).then(() => {
+            animating = false;
+            stage.classList.remove("animating");
+        });
+    }
+
+    // 从俯瞰视角回到当前站点
+    function backFromOverview() {
+        if (animating) return;
+        animating = true;
+        cancelInertia();
+        stage.classList.add("animating");
+        overview = false;
+        updateContinueBtn();
+
+        const p = pointAt(NODE_FRACTIONS[current]);
+        const camEnd = cameraAt(p, cameraScale);
+        const camPrev = { tx: cam.tx, ty: cam.ty, s: cam.s };
+        const revealEnd = NODE_FRACTIONS[maxReached];
+        tween(900, t => {
+            applyCamera({
+                tx: camPrev.tx + (camEnd.tx - camPrev.tx) * t,
+                ty: camPrev.ty + (camEnd.ty - camPrev.ty) * t,
+                s: camPrev.s + (camEnd.s - camPrev.s) * t
+            });
+            setReveal(1 - (1 - revealEnd) * t);
+        }, easeInOutCubic).then(() => {
+            growCard(p).then(() => {
+                animating = false;
+                stage.classList.remove("animating");
+            });
+        });
+    }
+
+    function updateContinueBtn() {
+        if (finished) {
+            continueBtn.innerHTML = overview
+                ? '<span>返回站点</span><span class="arrow">↩</span>'
+                : '<span>完整查看曲线</span><span class="arrow">⤢</span>';
+            continueBtn.classList.add("finished");
+            return;
+        }
+        if (current >= appearances.length - 1) {
+            continueBtn.innerHTML = '<span>完成探究</span><span class="arrow">✓</span>';
+        } else {
+            continueBtn.innerHTML = '<span>继续探究</span><span class="arrow">→</span>';
+        }
+    }
+
+    continueBtn.addEventListener("click", () => {
+        if (!finished) { goTo(current + 1); return; }
+        if (overview) backFromOverview(); else showOverview();
+    });
+
+    // ===== 自由拖拽浏览：鼠标按住拖动 / 手指滑动，松手带惯性，出界橡皮筋回弹 =====
+    const drag = {
+        active: false, moved: false, pointerId: null,
+        startX: 0, startY: 0, lastX: 0, lastY: 0, lastT: 0,
+        vx: 0, vy: 0
+    };
+    let inertiaId = null;
+    let suppressClick = false;
+    const DRAG_THRESHOLD = 6;   // 小于该距离视为点击，不打断节点跳转
+
+    function cancelInertia() {
+        if (inertiaId !== null) { cancelAnimationFrame(inertiaId); inertiaId = null; }
+    }
+    // 镜头平移的软边界（留一点余量，允许把边缘站点拉到视野中央）
+    function camBounds() {
+        const W = stage.clientWidth, H = stage.clientHeight;
+        const padX = Math.min(180, W * 0.15);
+        const padY = Math.min(140, H * 0.15);
+        return {
+            minTx: W - cam.s * W - padX, maxTx: padX,
+            minTy: H - cam.s * H - padY, maxTy: padY
+        };
+    }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    // 越过边界时增加阻尼，形成橡皮筋手感
+    function rubber(v, min, max) {
+        if (v < min) return min + (v - min) * 0.35;
+        if (v > max) return max + (v - max) * 0.35;
+        return v;
+    }
+
+    function onPointerDown(e) {
+        if (animating) return;                  // 自动旅程播放中不抢镜头
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        if (e.target.closest && e.target.closest(".info-panel")) return;  // 介绍面板内正常滚动/选择
+        cancelInertia();
+        drag.active = true;
+        drag.moved = false;
+        drag.pointerId = e.pointerId;
+        drag.startX = drag.lastX = e.clientX;
+        drag.startY = drag.lastY = e.clientY;
+        drag.lastT = performance.now();
+        drag.vx = drag.vy = 0;
+        stage.classList.add("dragging");
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+        document.addEventListener("pointercancel", onPointerUp);
+    }
+    function onPointerMove(e) {
+        if (!drag.active || e.pointerId !== drag.pointerId) return;
+        if (!drag.moved &&
+            Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < DRAG_THRESHOLD) return;
+        drag.moved = true;
+        if (e.cancelable) e.preventDefault();
+
+        const now = performance.now();
+        const dt = Math.max(8, now - drag.lastT);
+        const dx = e.clientX - drag.lastX;
+        const dy = e.clientY - drag.lastY;
+        drag.vx = dx / dt;   // 像素/毫秒，供松手后惯性使用
+        drag.vy = dy / dt;
+        drag.lastX = e.clientX;
+        drag.lastY = e.clientY;
+        drag.lastT = now;
+
+        const b = camBounds();
+        applyCamera({
+            tx: rubber(cam.tx + dx, b.minTx, b.maxTx),
+            ty: rubber(cam.ty + dy, b.minTy, b.maxTy),
+            s: cam.s
+        });
+    }
+    function onPointerUp(e) {
+        if (!drag.active || (e && e.pointerId !== drag.pointerId)) return;
+        drag.active = false;
+        stage.classList.remove("dragging");
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        document.removeEventListener("pointercancel", onPointerUp);
+        if (drag.moved) {
+            // 阻止这次抬手误触发节点点击
+            suppressClick = true;
+            setTimeout(() => { suppressClick = false; }, 300);
+            fling();
+        }
+    }
+    // 惯性滑行
+    function fling() {
+        let vx = drag.vx * 16;  // 折算为每帧（约16ms）速度
+        let vy = drag.vy * 16;
+        function frame() {
+            const b = camBounds();
+            let tx = cam.tx + vx;
+            let ty = cam.ty + vy;
+            // 边界外摩擦更大，快速把滑动吸收掉
+            if (tx < b.minTx) { tx = b.minTx + (tx - b.minTx) * 0.5; vx *= 0.75; }
+            if (tx > b.maxTx) { tx = b.maxTx + (tx - b.maxTx) * 0.5; vx *= 0.75; }
+            if (ty < b.minTy) { ty = b.minTy + (ty - b.minTy) * 0.5; vy *= 0.75; }
+            if (ty > b.maxTy) { ty = b.maxTy + (ty - b.maxTy) * 0.5; vy *= 0.75; }
+            vx *= 0.94; vy *= 0.94;
+            applyCamera({ tx: tx, ty: ty, s: cam.s });
+            if (Math.hypot(vx, vy) > 0.35) {
+                inertiaId = requestAnimationFrame(frame);
+            } else {
+                inertiaId = null;
+                springBack();
+            }
+        }
+        inertiaId = requestAnimationFrame(frame);
+    }
+    // 滑行停止后，若停在边界外则平滑回弹
+    function springBack() {
+        const b = camBounds();
+        const target = { tx: clamp(cam.tx, b.minTx, b.maxTx), ty: clamp(cam.ty, b.minTy, b.maxTy) };
+        if (Math.abs(target.tx - cam.tx) < 1 && Math.abs(target.ty - cam.ty) < 1) return;
+        const start = { tx: cam.tx, ty: cam.ty };
+        const duration = 320;
+        let t0 = null;
+        function frame(ts) {
+            if (t0 === null) t0 = ts;
+            const t = Math.min(1, (ts - t0) / duration);
+            const e = 1 - Math.pow(1 - t, 3);
+            applyCamera({
+                tx: start.tx + (target.tx - start.tx) * e,
+                ty: start.ty + (target.ty - start.ty) * e,
+                s: cam.s
+            });
+            inertiaId = t < 1 ? requestAnimationFrame(frame) : null;
+        }
+        inertiaId = requestAnimationFrame(frame);
+    }
+
+    stage.addEventListener("pointerdown", onPointerDown);
+    // 拖拽产生的 click 在捕获阶段拦掉，避免松手时误点站点
+    stage.addEventListener("click", (e) => {
+        if (suppressClick) { e.stopPropagation(); e.preventDefault(); suppressClick = false; }
+    }, true);
+
+    // ===== 初始化：镜头从微缩状态推近第一站 =====
+    function init() {
+        cameraScale = scaleFor();
+        measurePath();
+        buildNodes();
+        renderCard(current);
+        updateContinueBtn();
+
+        const p = pointAt(NODE_FRACTIONS[current]);
+        setReveal(NODE_FRACTIONS[maxReached]);
+        setCardAt(p, 0.15, 0);
+
+        const camEnd = cameraAt(p, cameraScale);
+        const camStart = { tx: camEnd.tx, ty: camEnd.ty, s: cameraScale * 0.85 };
+        applyCamera(camStart);
+
+        // 开场推镜期间暂不响应拖拽
+        animating = true;
+        stage.classList.add("animating");
+        tween(650, t => {
+            applyCamera({ tx: camEnd.tx, ty: camEnd.ty, s: camStart.s + (cameraScale - camStart.s) * t });
+        }, easeOutCubic).then(() => {
+            growCard(p).then(() => {
+                animating = false;
+                stage.classList.remove("animating");
+            });
+        });
+    }
+
+    init();
+
+    // 窗口变化时重建站点位置并把镜头落回当前站
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            cancelInertia();
+            cameraScale = scaleFor();
+            measurePath();
+            buildNodes();
+            setReveal(overview ? 1 : NODE_FRACTIONS[maxReached]);
+            if (!animating) {
+                if (overview) {
+                    // 俯瞰视角下保持整条曲线完整入镜
+                    applyCamera(fitCurveCamera());
+                } else {
+                    const p = pointAt(NODE_FRACTIONS[current]);
+                    setCardAt(p, 1, 1);
+                    applyCamera(cameraAt(p, cameraScale));
+                }
+            }
+        }, 150);
+    });
+})();
+</script>
+
+<!-- 小食老师对话引导 -->
+<script src="guide.js"></script>
+<script>
+(function () {
+    var guide = XJGuide({
+        name: "小食老师",
+        idle: "image/对话人物/teacher_idle.png",
+        talk: "image/对话人物/teacher_talk.png"
+    });
+
+    var continueBtn = document.getElementById("continueBtn");
+    var curNum = document.getElementById("curNum");
+    var nodesLayerEl = document.getElementById("nodesLayer");
+    var goNext = function () { continueBtn.click(); };
+    var backToFirst = function () {
+        var first = nodesLayerEl.querySelector(".node");
+        if (first) first.click();
+    };
+
+    /* 每一站：q=到站先抛的观察问题，hint=老师的观察点拨（不照搬卡片全文） */
+    var stations = [
+        { q: "咱们的第一站，是位画坛奇人——八大山人。这个名字，你在课本或画展上见过吗？",
+          h: "他是明太祖朱元璋的后裔，国破家亡后出家为僧。他画的鱼鸟总翻着白眼，笔墨少到不能再少，冷清又倔强。看这张图时，不妨找找那种“寥寥几笔，却很有脾气”的感觉。" },
+        { q: "离开画家的笔墨，抬头看看老屋的墙面。剥落成这样的壁画，你觉得还值得保留吗？",
+          h: "值得。它是几百年前街巷繁华留下的“彩色照片”：画了什么题材、用了什么颜色，都藏着当年主人的喜好和匠人的手艺。残，本身也是信息。" },
+        { q: "“富春一帆”——先猜一猜：西街过去和“水”，会是什么关系？",
+          h: "西街依水而兴，船曾经是货车也是公交。帆影虽然远去，水街相依的格局还在。你脚下这条长卷的走向，当年就跟着码头的人流走。" },
+        { q: "这一站，时间一下跳到几十年前。你知道“供销社”是买什么的地方吗？",
+          h: "那是计划经济年代的“万能商店”：盐、布、煤油、糖果，很多东西还要凭票购买。回家可以问问爷爷奶奶，他们小时候最想在供销社买到什么。" },
+        { q: "看井沿上这一道道深沟——猜猜看，它是被什么磨出来的？",
+          h: "是绳索。几百年里街坊一天好几回放桶提水，麻绳就在石头上勒出了像年轮一样的凹痕。这口井，是西街“烟火气”最老的证据。" },
+        { q: "走到街尾了。如果让你用一个词形容街尾和街中心的不同，你会用哪个词？",
+          h: "我会用“安静”。街尾收窄、人流散去，恰恰适合回头望——站在这里，整条街的时间像被拉成了一条线。" },
+        { q: "哈，画风一转，好吃的来了！弋阳年糕你尝过吗？它最特别的地方，是“捶”出来的。",
+          h: "大禾米要经过三蒸二百捶，捶到白润柔韧、不黏牙。它在明清两代还是送进皇宫的贡品——西街的味道，曾经走到过金銮殿上。" },
+        { q: "长卷上开始出现人名了。你觉得一条街的历史，是房子更重要，还是人更重要？",
+          h: "房子是容器，人是内容。欧阳致远这样的乡贤耕读传家、造福乡里，正是他们的故事，让老房子有了被记住的理由。" },
+        { q: "看这座古牌坊——在古代，牌坊可不是随便能立的。你觉得它是用来做什么的？",
+          h: "牌坊是古代的“荣誉纪念碑”：表彰科第、功德、节义，也标识街巷入口。立一座牌坊要官府批准、全族出资，它代表的是整条街的体面。" },
+        { q: "低头看看桥面的石板——为什么中间这么光滑、两边却更粗糙？",
+          h: "人走得多的地方，石头也会被脚步“抛光”。青苔、车辙、刻字，古桥上的每一处痕迹，都是几百年人来人往留下的数据。" },
+        { q: "闭上眼想象一下：这家铁匠铺最热闹的时候，会是什么声音？",
+          h: "叮叮当当——炉火通红，铁锤翻飞，锄头、菜刀、门环都从这里诞生。铁器会生锈，但老街人这股勤劳劲儿，被照片留了下来。" },
+        { q: "又一位西街人——王军的故事提醒我们：历史里除了大人物，还有谁？",
+          h: "还有每一个认真过日子的普通人。正是这些真实而温暖的日常，让老街不是凝固的标本，而是一直有人生活着的社区。" },
+        { q: "这位可是“古代旅行家”的天花板——徐霞客。你觉得他游历时，会特别留意什么？",
+          h: "他用三十年走遍山河，把地貌、水流、物产都写进《徐霞客游记》。他看风景不只说美，还总要追问一句“为什么是这样”——这正是探究的眼光。" },
+        { q: "弋阳腔被称作戏曲的“高腔鼻祖”。它有个特点：台上一人唱、台后众人和。这样唱有什么好处？",
+          h: "没有麦克风的年代，帮腔能把声音送出很远，也让戏更有气势。弋阳腔流布全国，后来的京剧、川剧等几十种声腔里，都有它的影子。" },
+        { q: "在没有手机的年代，思念一个人要怎么送达？看看这座老邮局。",
+          h: "写信、贴邮票、盖邮戳、等回信。墨绿色的邮筒里装着慢日子里的郑重——一封信要走很多天，所以每个字都写得格外认真。" },
+        { q: "十六站到齐，最后由乡贤张景江为这趟旅程收尾。此刻再看那条红线，你心里是什么感觉？",
+          h: "从书画家到乡贤，从古井戏台到邮局、供销社——十六个站点其实在说同一句话：老街今天的样貌，是一代代人一天天生活出来的。" }
+    ];
+
+    var nodes = [{
+        id: "welcome",
+        say: "你好呀，我是小食老师！这条长卷上串着西街的十六处今貌。我不一次讲完——咱们沿着朱砂红线走，我一边走一边问你。准备好了吗？",
+        opts: [
+            { label: "好，咱们边走边看！", goto: "s0q" },
+            { label: "我想自己先逛逛", run: function () { guide.dismiss(); } }
+        ]
+    }];
+
+    stations.forEach(function (s, i) {
+        var isLast = i === stations.length - 1;
+        nodes.push({
+            id: "s" + i + "q",
+            say: s.q,
+            opts: [
+                { label: "给我个观察提示", goto: "s" + i + "h" },
+                { label: "我先自己看卡片", run: function () { guide.dismiss(); } }
+            ]
+        });
+        nodes.push({
+            id: "s" + i + "h",
+            say: s.h,
+            opts: [
+                isLast
+                    ? { label: "完成全部探究 ✓", run: goNext, goto: "g1-finish" }
+                    : { label: "沿红线去下一站 ▸", run: goNext, goto: "walk" }
+            ]
+        });
+    });
+
+    nodes.push({ id: "walk", say: "走，跟上那个红点儿～到站我叫你。", opts: [] });
+    nodes.push({
+        id: "g1-finish",
+        say: "十六站，一站不落！看，脚下的按钮变成了“完整查看曲线”。点一下，镜头会拉远——把我们走过的整条西街，一次收进眼里。",
+        opts: [{ label: "俯瞰整条长卷 ⤢", run: goNext, goto: "g1-end" }]
+    });
+    nodes.push({
+        id: "g1-end",
+        say: "修旧如旧的西街，不是一座凝固的标本，而是一直有人生活着的长卷。想重走哪一站，点曲线上的小缩略图就行；也可以随时点右下角把我叫回来。",
+        opts: [
+            { label: "我自己再逛逛", run: function () { guide.dismiss(); } },
+            { label: "带我回第一站", run: backToFirst, goto: "walk" }
+        ]
+    });
+
+    guide.bind(nodes);
+    guide.show("welcome");
+
+    /* 到站监听：进度数字一变，老师自动抛出新一站的问题（学生选择自己逛时不打扰） */
+    var lastStation = 0;
+    new MutationObserver(function () {
+        var n = parseInt(curNum.textContent, 10) - 1;
+        if (isNaN(n) || n === lastStation) return;
+        lastStation = n;
+        if (!guide.isMuted()) guide.show("s" + n + "q");
+    }).observe(curNum, { childList: true, characterData: true, subtree: true });
+})();
+</script>
+
+<script src="music.js" defer></script>
+</body>
+</html>

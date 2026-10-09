@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>寻西街味道 · 弋阳西街</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --wood-deep: #33230f;      /* 深栗木案 */
+        --wood: #4a331b;           /* 木牌 */
+        --wood-edge: #6a4a26;
+        --gold: #d9a74f;
+        --paper: #e9d7ae;          /* 木刻图纸 */
+        --sheet: #f2e6c8;          /* 菜单纸 */
+        --ink: #2c1d10;            /* 木刻墨线 */
+        --ink-soft: #54402b;
+        --cinnabar: #b03a2c;
+        --cinnabar-deep: #8f2c20;
+        --bamboo: #6f7a52;
+        --steam: rgba(255, 248, 232, 0.85);
+    }
+    html, body { height: 100%; }
+    body {
+        font-family: "SimSun", "宋体", "Songti SC", "Noto Serif SC", serif;
+        color: var(--paper);
+        overflow: hidden;
+        background:
+            radial-gradient(120% 80% at 18% -10%, rgba(217, 167, 79, 0.14), rgba(217, 167, 79, 0) 55%),
+            radial-gradient(100% 70% at 110% 110%, rgba(176, 58, 44, 0.16), rgba(176, 58, 44, 0) 50%),
+            var(--wood-deep);
+    }
+    .wood-wrap { height: 100vh; display: flex; flex-direction: column; padding: 12px 18px 10px; gap: 10px; }
+    .hidden { display: none !important; }
+    button { font-family: inherit; }
+
+    /* ============ 顶栏：木匾标题 ============ */
+    .topbar {
+        flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; padding: 0 2px;
+    }
+    .back-btn {
+        flex: 0 0 auto;
+        padding: 8px 16px; font-size: 15px; letter-spacing: 0.08em;
+        color: var(--paper); background: rgba(255, 240, 210, 0.08);
+        border: 1px solid rgba(217, 167, 79, 0.5); border-radius: 4px;
+        cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .back-btn:hover { background: rgba(255, 240, 210, 0.18); transform: translateX(-2px); }
+    .back-btn:focus-visible, .stall:focus-visible, .seal-btn:focus-visible, .guide-item:focus-visible {
+        outline: 2px solid var(--gold); outline-offset: 2px;
+    }
+    .plaque {
+        position: relative; flex: 0 1 auto;
+        padding: 9px 40px 10px;
+        background: linear-gradient(180deg, #573d1e, #3f2b13);
+        border: 2px solid var(--wood-edge); border-radius: 4px;
+        box-shadow: inset 0 0 0 1px rgba(217, 167, 79, 0.35), 0 4px 0 #201408;
+        text-align: center;
+    }
+    .plaque::before, .plaque::after { /* 木匾挂钉 */
+        content: ""; position: absolute; top: 5px; width: 7px; height: 7px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #f0d48a, #8a6428 70%);
+    }
+    .plaque::before { left: 10px; } .plaque::after { right: 10px; }
+    .plaque h1 {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-weight: normal;
+        font-size: clamp(22px, 3vw, 32px);
+        letter-spacing: 0.32em; padding-left: 0.32em;
+        color: var(--gold);
+        white-space: nowrap;
+    }
+    .plaque h1 .verb { color: #e0674f; }
+    .topbar-note {
+        flex: 0 0 auto; font-family: "KaiTi", "楷体", serif;
+        font-size: 14px; letter-spacing: 0.22em; color: rgba(233, 215, 174, 0.72);
+        white-space: nowrap;
+    }
+
+    /* ============ 主区：左图右牌 ============ */
+    .market { flex: 1; min-height: 0; display: flex; gap: 14px; }
+
+    /* —— 木刻地图 —— */
+    .map-panel { flex: 0 0 41%; min-width: 0; display: flex; align-items: center; justify-content: center; }
+    .map-paper {
+        position: relative;
+        height: 100%; aspect-ratio: 200 / 262;
+        max-width: 100%;
+        background:
+            radial-gradient(circle at 12% 88%, rgba(120, 84, 40, 0.10), transparent 40%),
+            radial-gradient(circle at 88% 12%, rgba(120, 84, 40, 0.08), transparent 42%),
+            var(--paper);
+        border: 3px solid var(--ink);
+        border-radius: 3px;
+        box-shadow: 0 6px 0 #201408, 0 14px 30px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+    }
+    .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .map-svg .road { fill: none; stroke: #d4bf91; stroke-width: 26; stroke-linecap: round; }
+    .map-svg .road-seam { fill: none; stroke: #9c7d4e; stroke-width: 1.4; stroke-dasharray: 0.2 6; stroke-linecap: round; opacity: 0.7; }
+    .map-svg .trail {
+        fill: none; stroke: var(--cinnabar); stroke-width: 1.6;
+        stroke-dasharray: 1.6 5.5; stroke-linecap: round;
+        animation: dashmove 2.4s linear infinite;
+    }
+    @keyframes dashmove { to { stroke-dashoffset: -28; } }
+    .map-caption {
+        position: absolute; left: 9px; top: 9px; z-index: 2;
+        display: flex; align-items: flex-start; gap: 6px;
+    }
+    .map-caption .mc-text {
+        writing-mode: vertical-rl;
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: 17px; letter-spacing: 0.42em; color: var(--ink);
+    }
+    .map-caption .mc-seal {
+        width: 22px; height: 22px; border-radius: 3px;
+        background: var(--cinnabar); color: var(--sheet);
+        font-family: "KaiTi", "楷体", serif; font-size: 13px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 0 0 1px rgba(255, 240, 215, 0.4);
+    }
+
+    /* 摊点热点 */
+    .stall {
+        position: absolute; left: var(--x); top: var(--y);
+        transform: translate(-50%, -50%);
+        width: 96px; padding: 0; border: 0; background: transparent;
+        cursor: pointer; z-index: 3;
+    }
+    .stall .hood {
+        position: relative; width: 86px; height: 20px; margin: 0 auto;
+        background: #7d5a38;
+        clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%);
+        border-bottom: 3px solid var(--ink);
+        transition: background-color 0.25s ease;
+    }
+    .stall .hood::after { /* 檐下招幌横杆 */
+        content: ""; position: absolute; left: 50%; bottom: -3px;
+        width: 34px; height: 3px; background: var(--ink); transform: translateX(-50%);
+    }
+    .stall .flag {
+        display: block; width: 27px; height: 56px; margin: 0 auto;
+        writing-mode: vertical-rl;
+        font-family: "KaiTi", "楷体", serif; font-size: 13.5px; letter-spacing: 0.16em;
+        color: var(--ink); background: #f3e8cd;
+        border: 1.5px solid var(--ink); border-top: none;
+        line-height: 25px; text-align: center;
+        transform-origin: top center;
+        animation: flagsway 4.2s ease-in-out infinite;
+        transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .stall:nth-child(even) .flag { animation-delay: -2.1s; }
+    @keyframes flagsway { 0%, 100% { transform: rotate(2.4deg); } 50% { transform: rotate(-2.4deg); } }
+    .stall .table {
+        width: 80px; height: 9px; margin: 0 auto;
+        background: #94704a; border: 2px solid var(--ink); border-top: none;
+        position: relative;
+    }
+    .stall .table::before, .stall .table::after {
+        content: ""; position: absolute; top: 100%; width: 4px; height: 9px;
+        background: var(--ink);
+    }
+    .stall .table::before { left: 12px; } .stall .table::after { right: 12px; }
+    .stall .no {
+        position: absolute; top: -4px; right: -2px; z-index: 2;
+        width: 23px; height: 23px; border-radius: 50%;
+        background: var(--paper); color: var(--ink);
+        border: 2px solid var(--ink);
+        font-family: "KaiTi", "楷体", serif; font-size: 13px;
+        display: flex; align-items: center; justify-content: center;
+        transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+    }
+    /* 蒸汽 */
+    .steam { position: absolute; left: 50%; top: -22px; width: 40px; height: 26px; transform: translateX(-50%); pointer-events: none; }
+    .steam i {
+        position: absolute; bottom: 0; width: 8px; height: 18px;
+        border-left: 2px solid var(--steam); border-radius: 50%;
+        opacity: 0;
+        animation: steamup 2.6s ease-out infinite;
+    }
+    .steam i:nth-child(1) { left: 8px; }
+    .steam i:nth-child(2) { left: 18px; animation-delay: -0.9s; }
+    .steam i:nth-child(3) { left: 28px; animation-delay: -1.8s; }
+    @keyframes steamup {
+        0% { transform: translateY(6px) scaleY(0.7); opacity: 0; }
+        35% { opacity: 0.85; }
+        100% { transform: translateY(-14px) scaleY(1.15); opacity: 0; }
+    }
+    /* 选中态：朱幌 + 金晕 */
+    .stall:hover .hood, .stall.active .hood { background: #8f5232; }
+    .stall:hover { transform: translate(-50%, -50%) translateY(-3px); }
+    .stall.active .flag {
+        background: var(--cinnabar); color: #f7e9cb;
+        border-color: #6e2117;
+        box-shadow: 0 0 18px rgba(224, 103, 79, 0.55);
+        animation: flagwave 1.1s ease-in-out infinite;
+    }
+    @keyframes flagwave { 0%, 100% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } }
+    .stall.active .no { background: var(--cinnabar); color: #f7e9cb; border-color: #6e2117; transform: scale(1.12); }
+    .stall.active .steam i { animation-duration: 1.5s; }
+
+    /* 飘落桂花 */
+    .petal {
+        position: absolute; z-index: 1; width: 5px; height: 5px; border-radius: 50% 50% 50% 0;
+        background: #d9a44a; opacity: 0.75; pointer-events: none;
+        animation: fall linear infinite;
+    }
+    @keyframes fall {
+        0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+        12% { opacity: 0.8; }
+        100% { transform: translateY(104%) rotate(420deg); opacity: 0; }
+    }
+
+    /* —— 木牌食单 —— */
+    .menu-board {
+        position: relative;
+        flex: 1; min-width: 0;
+        background:
+            radial-gradient(120% 60% at 50% 0%, rgba(217, 167, 79, 0.10), transparent 60%),
+            var(--wood);
+        border: 2px solid var(--wood-edge); border-radius: 8px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 6px 0 #201408;
+        padding: 16px 18px;
+        overflow-y: auto;
+    }
+    .menu-board::before { /* 木牌左上角铁钉 */
+        content: ""; position: absolute; top: 8px; left: 8px; width: 8px; height: 8px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #efe0b8, #6e5527 75%);
+    }
+    .menu-board::after {
+        content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #efe0b8, #6e5527 75%);
+    }
+
+    /* 导览空态 */
+    .menu-guide { max-width: 520px; margin: 0 auto; padding: 18px 8px; }
+    .menu-guide h2 {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-weight: normal; font-size: 30px; letter-spacing: 0.24em;
+        color: var(--gold); text-align: center; margin-bottom: 14px;
+    }
+    .menu-guide p {
+        font-size: 15.5px; line-height: 2; letter-spacing: 0.05em;
+        color: rgba(242, 230, 200, 0.88); text-align: center; margin-bottom: 20px;
+    }
+    .guide-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+    .guide-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px; text-align: left;
+        font-size: 16px; letter-spacing: 0.1em; color: var(--sheet);
+        background: rgba(255, 240, 210, 0.07);
+        border: 1px solid rgba(217, 167, 79, 0.4); border-radius: 5px;
+        cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .guide-item:hover { background: rgba(176, 58, 44, 0.35); border-color: var(--cinnabar); }
+    .guide-item .g-seal {
+        flex: 0 0 24px; width: 24px; height: 24px; border-radius: 4px;
+        border: 1.5px solid rgba(217, 167, 79, 0.7); color: var(--gold);
+        font-family: "KaiTi", "楷体", serif; font-size: 14px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .guide-item.done .g-seal {
+        background: var(--cinnabar); border-color: #6e2117; color: #f7e9cb;
+        transform: rotate(-5deg);
+    }
+    .guide-item.done { color: rgba(242, 230, 200, 0.62); }
+    .guide-item .g-no { margin-left: auto; font-size: 12px; color: rgba(217, 167, 79, 0.75); letter-spacing: 0.1em; }
+
+    /* 菜牌纸 */
+    .dish-card { animation: sheetIn 0.4s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+    @keyframes sheetIn {
+        from { opacity: 0; transform: translateY(14px) rotate(0.4deg); }
+        to { opacity: 1; transform: translateY(0) rotate(0); }
+    }
+    .dish-sheet {
+        position: relative;
+        background: var(--sheet); color: var(--ink);
+        border: 2.5px solid var(--ink); border-radius: 4px;
+        overflow: hidden;
+    }
+    .dish-photo { position: relative; height: 208px; background: #241708; overflow: hidden; border-bottom: 2.5px solid var(--ink); }
+    .dish-photo img {
+        width: 100%; height: 100%; object-fit: cover; display: block;
+        filter: sepia(0.42) saturate(0.92) contrast(1.05);
+    }
+    .dish-photo::after { /* 木刻套色网调，让照片融进版画 */
+        content: ""; position: absolute; inset: 0;
+        background: radial-gradient(circle at 50% 40%, rgba(176, 58, 44, 0.05), rgba(44, 29, 16, 0.22));
+        pointer-events: none;
+    }
+    .photo-stamp { /* 盖在照片上的食印 */
+        position: absolute; right: 12px; bottom: 12px; z-index: 2;
+        width: 52px; height: 52px; border-radius: 5px;
+        background: rgba(176, 58, 44, 0.92); color: #f7e9cb;
+        border: 2px solid rgba(247, 233, 203, 0.55);
+        font-family: "KaiTi", "楷体", serif; font-size: 26px;
+        display: flex; align-items: center; justify-content: center;
+        transform: rotate(-7deg) scale(1);
+        animation: stampsmack 0.45s cubic-bezier(0.2, 1.5, 0.35, 1) both;
+    }
+    @keyframes stampsmack {
+        0% { transform: rotate(-20deg) scale(2.4); opacity: 0; }
+        60% { transform: rotate(-4deg) scale(0.92); opacity: 1; }
+        100% { transform: rotate(-7deg) scale(1); opacity: 1; }
+    }
+    .dish-body { padding: 15px 18px 17px; }
+    .dish-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+    .dish-head h2 {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-weight: normal; font-size: clamp(26px, 3.4vw, 34px); letter-spacing: 0.1em;
+        color: var(--ink);
+    }
+    .dish-head .d-no {
+        font-family: "KaiTi", "楷体", serif; font-size: 14px;
+        color: var(--cinnabar); border: 1.5px solid var(--cinnabar);
+        border-radius: 3px; padding: 1px 7px;
+    }
+    .dish-aka { font-size: 14px; letter-spacing: 0.14em; color: var(--ink-soft); margin-bottom: 10px; }
+    .dish-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 11px; }
+    .dish-tags .tag {
+        font-size: 12.5px; letter-spacing: 0.12em;
+        padding: 2px 10px; border-radius: 20px;
+        color: #6e4b1c; background: rgba(217, 167, 79, 0.22);
+        border: 1px solid rgba(110, 75, 28, 0.55);
+    }
+    .dish-story { font-size: 15.5px; line-height: 1.95; letter-spacing: 0.035em; color: #382717; margin-bottom: 11px; }
+    .dish-note {
+        display: flex; gap: 9px; align-items: flex-start;
+        font-size: 14px; line-height: 1.85; color: #4a3520;
+        background: rgba(176, 58, 44, 0.07);
+        border: 1px solid rgba(176, 58, 44, 0.35);
+        border-radius: 5px; padding: 9px 12px; margin-bottom: 14px;
+    }
+    .dish-note .n-seal {
+        flex: 0 0 auto; width: 21px; height: 21px; border-radius: 3px; margin-top: 2px;
+        background: var(--cinnabar); color: #f7e9cb; font-size: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: "KaiTi", "楷体", serif;
+    }
+    .seal-btn {
+        width: 100%; padding: 11px 16px;
+        font-family: "KaiTi", "楷体", serif; font-size: 18px; letter-spacing: 0.3em; padding-left: 0.3em;
+        color: #f7e9cb; background: var(--cinnabar);
+        border: 2px solid #6e2117; border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.15s ease;
+    }
+    .seal-btn:hover { background: var(--cinnabar-deep); transform: translateY(-1px); }
+    .seal-btn:active { transform: translateY(1px); }
+    .seal-btn.stamped {
+        background: transparent; color: var(--cinnabar);
+        border-color: var(--cinnabar);
+        cursor: default;
+    }
+
+    /* ============ 底部：食客帖（兼作 controls 避让音乐按钮） ============ */
+    .controls {
+        flex: 0 0 auto;
+        display: flex; align-items: center; gap: 14px;
+        background: linear-gradient(180deg, #573d1e, #45300f);
+        border: 2px solid var(--wood-edge); border-radius: 8px;
+        padding: 9px 18px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+    }
+    .passport-title { flex: 0 0 auto; }
+    .passport-title .pt-main {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: 21px; letter-spacing: 0.22em; color: var(--gold);
+    }
+    .passport-title .pt-sub { font-size: 11.5px; letter-spacing: 0.24em; color: rgba(233, 215, 174, 0.6); }
+    .slots { flex: 1; display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; }
+    .slot {
+        position: relative; width: 39px; height: 39px; border-radius: 5px;
+        border: 1.5px dashed rgba(217, 167, 79, 0.55);
+        color: rgba(217, 167, 79, 0.32);
+        font-family: "KaiTi", "楷体", serif; font-size: 18px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .slot.got {
+        border: 2.5px solid var(--cinnabar); border-style: solid;
+        background: rgba(176, 58, 44, 0.14);
+        color: #e8816f;
+        animation: slotin 0.5s cubic-bezier(0.2, 1.5, 0.35, 1) both;
+    }
+    @keyframes slotin {
+        0% { transform: scale(1.7) rotate(-14deg); opacity: 0; }
+        100% { transform: scale(1) rotate(var(--rot)); opacity: 1; }
+    }
+    .slot.got { transform: rotate(var(--rot)); }
+    .counter {
+        flex: 0 0 auto;
+        font-family: "KaiTi", "楷体", serif; font-size: 16px; letter-spacing: 0.16em;
+        color: var(--gold); white-space: nowrap;
+    }
+    .counter b { font-size: 21px; color: #e8816f; }
+
+    /* ============ 通关食帖 ============ */
+    .finale {
+        position: fixed; inset: 0; z-index: 60;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(18, 11, 5, 0.86);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.35s ease;
+    }
+    .finale.show { opacity: 1; pointer-events: auto; }
+    .finale-scroll {
+        position: relative;
+        width: min(430px, 90vw);
+        background: var(--sheet);
+        border: 3px solid var(--ink);
+        border-radius: 4px;
+        padding: 38px 32px 30px;
+        text-align: center; color: var(--ink);
+        transform: translateY(24px) scale(0.96);
+        transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.3, 1);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    }
+    .finale.show .finale-scroll { transform: translateY(0) scale(1); }
+    .finale-scroll::before {
+        content: ""; position: absolute; inset: 9px;
+        border: 1.5px solid rgba(44, 29, 16, 0.55); border-radius: 2px;
+        pointer-events: none;
+    }
+    .finale-scroll h2 {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-weight: normal; font-size: 40px; letter-spacing: 0.3em; padding-left: 0.3em;
+        margin-bottom: 8px;
+    }
+    .finale-scroll p { font-size: 15px; line-height: 1.9; letter-spacing: 0.08em; color: var(--ink-soft); margin-bottom: 20px; }
+    .big-seal {
+        width: 118px; height: 118px; margin: 0 auto 22px;
+        display: grid; grid-template-columns: 1fr 1fr;
+        background: var(--cinnabar);
+        border: 3px solid #6e2117; border-radius: 6px;
+        box-shadow: inset 0 0 0 2px rgba(247, 233, 203, 0.35);
+    }
+    .big-seal span {
+        display: flex; align-items: center; justify-content: center;
+        font-family: "KaiTi", "楷体", serif; font-size: 38px; color: #f7e9cb;
+        line-height: 1;
+    }
+    .finale.show .big-seal { animation: stampsmack 0.6s cubic-bezier(0.2, 1.5, 0.35, 1) 0.25s both; }
+    .finale-actions { display: flex; gap: 10px; justify-content: center; }
+    .finale-actions button {
+        padding: 9px 20px; font-size: 15.5px; letter-spacing: 0.16em;
+        border-radius: 4px; cursor: pointer; border: 2px solid var(--ink);
+    }
+    .f-close { background: var(--cinnabar); color: #f7e9cb; border-color: #6e2117 !important; font-family: "KaiTi", "楷体", serif; }
+    .f-close:hover { background: var(--cinnabar-deep); }
+    .f-reset { background: transparent; color: var(--ink-soft); font-family: inherit; }
+    .f-reset:hover { background: rgba(44, 29, 16, 0.08); }
+
+    /* ============ 响应式 ============ */
+    @media (max-width: 860px) {
+        .wood-wrap { padding: 8px 10px; gap: 8px; }
+        .market { flex-direction: column; gap: 8px; }
+        .map-panel { flex: 0 0 38vh; }
+        .map-paper { height: 100%; }
+        .stall { width: 70px; transform: translate(-50%, -50%) scale(0.78); }
+        .stall:hover { transform: translate(-50%, -50%) scale(0.78) translateY(-3px); }
+        .topbar-note { display: none; }
+        .plaque { padding: 7px 22px; }
+        .menu-board { padding: 12px; }
+        .dish-photo { height: 168px; }
+        .guide-list { grid-template-columns: 1fr; }
+        .controls { padding: 8px 10px; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .passport-title .pt-sub { display: none; }
+        .slot { width: 30px; height: 30px; font-size: 15px; }
+        .counter { width: 100%; text-align: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .dish-card, .finale-scroll, .big-seal { opacity: 1 !important; transform: none !important; }
+    }
+</style>
+</head>
+<body>
+<div class="wood-wrap">
+
+    <header class="topbar">
+        <button class="back-btn" onclick="if(window.self!==window.top){window.top.postMessage({type:'xijie-back'},'*');}else{location.href='index.html';}">← 返回首页</button>
+        <div class="plaque"><h1><span class="verb">寻</span>西街味道</h1></div>
+        <div class="topbar-note">点击沿街招幌 · 逐味寻香</div>
+    </header>
+
+    <main class="market">
+        <!-- 木刻集市图 -->
+        <section class="map-panel">
+            <div class="map-paper" id="mapPaper">
+                <svg class="map-svg" viewBox="0 0 200 262" preserveAspectRatio="none" aria-hidden="true">
+                    <!-- 远山 -->
+                    <path d="M0,58 Q26,30 52,46 T104,42 T156,48 T200,40 L200,66 L0,66 Z" fill="#8a907a" opacity="0.55"/>
+                    <!-- 背景屋舍剪影 -->
+                    <g opacity="0.5">
+                        <path d="M14,86 l11,-11 l11,11 Z" fill="#6e5233"/>
+                        <rect x="16" y="86" width="18" height="14" fill="#7d5f3d"/>
+                        <path d="M160,120 l10,-10 l10,10 Z" fill="#6e5233"/>
+                        <rect x="162" y="120" width="16" height="13" fill="#7d5f3d"/>
+                        <path d="M16,196 l11,-11 l11,11 Z" fill="#6e5233"/>
+                        <rect x="18" y="196" width="18" height="14" fill="#7d5f3d"/>
+                    </g>
+                    <!-- 小牌坊 -->
+                    <g fill="#5a4128" opacity="0.85">
+                        <rect x="92" y="40" width="4" height="26"/>
+                        <rect x="104" y="40" width="4" height="26"/>
+                        <rect x="84" y="46" width="32" height="5"/>
+                        <path d="M80,46 L100,34 L120,46 Z"/>
+                    </g>
+                    <!-- S 形石板街 + 足迹路线 -->
+                    <path class="road" d="M40,30 C108,30 108,98 160,98 C108,98 108,166 40,166 C108,166 108,234 160,234"/>
+                    <path class="road-seam" d="M40,30 C108,30 108,98 160,98 C108,98 108,166 40,166 C108,166 108,234 160,234"/>
+                    <path class="trail" d="M40,30 C108,30 108,98 160,98 C108,98 108,166 40,166 C108,166 108,234 160,234"/>
+                </svg>
+
+                <div class="map-caption">
+                    <span class="mc-text">西街食肆圖</span>
+                    <span class="mc-seal">西</span>
+                </div>
+
+                <!-- 八个摊点（沿 S 街蛇形布列） -->
+                <button class="stall" style="--x:20%;--y:11.4%" data-i="0" aria-label="弋阳米粉">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">壹</span><span class="hood"></span><span class="flag">弋阳米粉</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:80%;--y:11.4%" data-i="1" aria-label="弋阳年糕">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">贰</span><span class="hood"></span><span class="flag">弋阳年糕</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:80%;--y:37.4%" data-i="2" aria-label="油炸果">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">叁</span><span class="hood"></span><span class="flag">油炸果</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:20%;--y:37.4%" data-i="3" aria-label="清明果">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">肆</span><span class="hood"></span><span class="flag">清明果</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:20%;--y:63.4%" data-i="4" aria-label="灯盏果">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">伍</span><span class="hood"></span><span class="flag">灯盏果</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:80%;--y:63.4%" data-i="5" aria-label="糍粑">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">陆</span><span class="hood"></span><span class="flag">糍粑</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:80%;--y:89.3%" data-i="6" aria-label="冻米糖">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">柒</span><span class="hood"></span><span class="flag">冻米糖</span><span class="table"></span>
+                </button>
+                <button class="stall" style="--x:20%;--y:89.3%" data-i="7" aria-label="芋饺">
+                    <span class="steam"><i></i><i></i><i></i></span>
+                    <span class="no">捌</span><span class="hood"></span><span class="flag">芋饺</span><span class="table"></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 木牌食单 -->
+        <aside class="menu-board" id="menuBoard">
+            <div class="menu-guide" id="menuGuide">
+                <h2>食肆导览</h2>
+                <p>这张木版小图，照着西街八样老味道刻成。<br>循着朱砂足迹走，招幌上写的，便是今日的菜单。</p>
+                <div class="guide-list" id="guideList"></div>
+            </div>
+
+            <article class="dish-card hidden" id="dishCard" aria-live="polite">
+                <div class="dish-sheet">
+                    <div class="dish-photo">
+                        <img id="dishImg" src="" alt="">
+                    </div>
+                    <div class="dish-body">
+                        <div class="dish-head">
+                            <span class="d-no" id="dishNo"></span>
+                            <h2 id="dishName"></h2>
+                        </div>
+                        <p class="dish-aka" id="dishAka"></p>
+                        <div class="dish-tags" id="dishTags"></div>
+                        <p class="dish-story" id="dishStory"></p>
+                        <div class="dish-note"><span class="n-seal">识</span><span id="dishNote"></span></div>
+                        <button class="seal-btn" id="sealBtn">盖一枚食印</button>
+                    </div>
+                </div>
+            </article>
+        </aside>
+    </main>
+
+    <footer class="controls">
+        <div class="passport-title">
+            <div class="pt-main">食客帖</div>
+            <div class="pt-sub">集印八枚 · 方成食客</div>
+        </div>
+        <div class="slots" id="slots"></div>
+        <div class="counter">已寻 <b id="stampCount">0</b> / 8 味</div>
+    </footer>
+</div>
+
+<!-- 通关食帖 -->
+<div class="finale" id="finale" role="dialog" aria-modal="true" aria-label="西街食客通关帖">
+    <div class="finale-scroll">
+        <h2>西街食客</h2>
+        <p>八味尝遍，不虚西街一行。<br>此帖为证，愿你再回来时，锅里仍冒着热气。</p>
+        <div class="big-seal"><span>食</span><span>在</span><span>西</span><span>街</span></div>
+        <div class="finale-actions">
+            <button class="f-close" id="fClose">收下帖子</button>
+            <button class="f-reset" id="fReset">重开食帖</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    var CN = ["壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌"];
+    var ANGLES = [-6, 4, -3, 6, -5, 3, -2, 5];
+
+    /* 八味数据：图片 / 文化介绍 / 教学小识，均依弋阳本地食俗整理 */
+    var dishes = [
+        {
+            seal: "粉", name: "弋阳米粉", aka: "晨光里的鲜辣一碗",
+            img: "image/项目4/弋阳米粉.jpg",
+            tags: ["晨食", "鲜辣", "米榨"],
+            story: "一碗冒尖的牛肉汤粉，是弋阳人叫醒清晨的方式。圆粉以早米磨浆、蒸皮、压榨成型，入锅久烫不糊；浇上牛骨鲜汤与大片牛肉，撒一把香菜、辣椒末，鲜辣暖身，满头微汗才算开张。",
+            note: "米粉和年糕同出大米，磨浆蒸皮还是舂捣成块，做法不同，滋味便天差地别。"
+        },
+        {
+            seal: "糕", name: "弋阳年糕", aka: "洁白如霜 · 曾贡庙堂",
+            img: "image/项目4/弋阳年糕.jpg",
+            tags: ["贡品", "手捶", "大禾米"],
+            story: "弋阳年糕以本地特产大禾米为料，经浸米、磨浆、压干、三蒸二百捶，方才白润柔韧。成品洁白如霜、滑爽不黏牙，可炒可汤、可烤可煮。明清两代，它曾是送入京城的贡品。",
+            note: "“三蒸二百捶”说的是手上力气，更是米食里耗不掉的时间。"
+        },
+        {
+            seal: "果", name: "油炸果", aka: "滚油膨出的放学零嘴",
+            img: "image/项目4/油炸果.jpg",
+            tags: ["街头", "现炸", "酥香"],
+            story: "西街的油锅一支，半条街都闻得见香。米浆拌上脆嫩萝卜丝，舀入扁勺沉进滚油，滋啦一声膨成金黄圆果，外壳酥脆、内里软嫩，几毛钱就能捧在手里，是几代西街人的放学味道。",
+            note: "含水米浆遇热油瞬间汽化膨松，好吃的背后是一次小小的物理反应。"
+        },
+        {
+            seal: "青", name: "清明果", aka: "把春天包进青玉皮",
+            img: "image/项目4/清明果.jpg",
+            tags: ["清明", "艾草", "春笋"],
+            story: "清明前后，采回鲜嫩艾草捣汁，拌进糯米粉揉出青玉色的面皮，包入春笋、腊肉、腌菜，捏出一道道花边饺印。蒸好的清明果油亮青绿，咬开便是一整个山野春天。",
+            note: "用艾草给米食上色增香，是中国人“顺时而食”的生活智慧。"
+        },
+        {
+            seal: "盏", name: "灯盏果", aka: "米皮蒸成的小油灯盏",
+            img: "image/项目4/灯盏果.jpg",
+            tags: ["蒸食", "米盏", "咸鲜"],
+            story: "米浆倒入小圆盏蒸至半凝，中央按出浅窝，填上肉末、香菇、豌豆、胡萝卜丁再蒸熟，脱盏而成——因形似旧时盛油的灯盏得名。连盏带馅一口吃下，咸鲜香软，是上饶一带独有的米食花样。",
+            note: "把面皮蒸成小碗，盏壁与馅料同时成熟，一只果里藏着巧思。"
+        },
+        {
+            seal: "糍", name: "糍粑", aka: "石臼里捶出的年节甜",
+            img: "image/项目4/糍粑.jpg",
+            tags: ["年节", "手打", "香甜"],
+            story: "蒸熟的糯米饭倾入石臼，两三人举着木槌轮番捶打，米粒化作绵软一团。揪一小团滚满芝麻白糖，入口黏韧香甜。西街打糍粑，是冬腊月里最热闹、最有劲头的声响。",
+            note: "糯米越捶越黏，捶散的是米粒，捶不散的是团圆的年意。"
+        },
+        {
+            seal: "糖", name: "冻米糖", aka: "一刀咔嚓 · 满口年香",
+            img: "image/项目4/冻米糖.jpg",
+            tags: ["年礼", "切糖", "酥脆"],
+            story: "糯米蒸熟后冻透、晒干成冻米，炒得粒粒松脆，拌入熬化的麦芽糖液压平打实，趁热线切成整齐长块。咬开咔嚓作响，米花与焦甜糖香满口，是弋阳人过年走亲访友最体面的手信。",
+            note: "冻过的米花更松脆，而糖必须趁热切——凉了，一刀下去只会碎。"
+        },
+        {
+            seal: "芋", name: "芋饺", aka: "芋香滑韧的三角家味",
+            img: "image/项目4/芋饺.jpg",
+            tags: ["家味", "芋香", "滑韧"],
+            story: "芋子蒸熟捣烂，趁热和入红薯淀粉揉成紫灰面皮，包入鲜肉馅捏成三角。清汤煮熟，皮子滑得在勺里微颤，筋道中透出芋头清香。一碗清汤芋饺，藏着赣东北人家的软糯心思。",
+            note: "芋头与淀粉的配比决定成败——好的芋饺皮，夹起来会轻轻“跳舞”。"
+        }
+    ];
+
+    var storeKey = "xijie-group4-stamps";
+    var cur = -1;
+    var stamped = [];
+    try { stamped = JSON.parse(localStorage.getItem(storeKey) || "[]"); } catch (e) { stamped = []; }
+    if (!Array.isArray(stamped)) stamped = [];
+
+    var $ = function (id) { return document.getElementById(id); };
+    var stalls = Array.prototype.slice.call(document.querySelectorAll(".stall"));
+
+    /* —— 飘落桂花 —— */
+    var paper = $("mapPaper");
+    for (var p = 0; p < 9; p++) {
+        var dot = document.createElement("i");
+        dot.className = "petal";
+        dot.style.left = (6 + Math.random() * 88) + "%";
+        dot.style.animationDuration = (7 + Math.random() * 7) + "s";
+        dot.style.animationDelay = (-Math.random() * 10) + "s";
+        dot.style.transform = "scale(" + (0.7 + Math.random() * 0.8) + ")";
+        paper.appendChild(dot);
+    }
+
+    /* —— 食客帖印格 —— */
+    var slotsEl = $("slots");
+    dishes.forEach(function (d, i) {
+        var s = document.createElement("div");
+        s.className = "slot";
+        s.textContent = d.seal;
+        s.title = d.name;
+        s.style.setProperty("--rot", ANGLES[i] + "deg");
+        slotsEl.appendChild(s);
+    });
+    var slotEls = Array.prototype.slice.call(slotsEl.children);
+
+    /* —— 导览列表 —— */
+    var guideList = $("guideList");
+    dishes.forEach(function (d, i) {
+        var li = document.createElement("li");
+        var b = document.createElement("button");
+        b.className = "guide-item";
+        b.innerHTML = '<span class="g-seal">' + d.seal + "</span>" +
+            "<span>" + d.name + "</span>" +
+            '<span class="g-no">第 ' + CN[i] + " 摊</span>";
+        b.addEventListener("click", function () { selectDish(i); });
+        li.appendChild(b);
+        guideList.appendChild(li);
+    });
+    var guideItems = Array.prototype.slice.call(guideList.querySelectorAll(".guide-item"));
+
+    function renderPassport() {
+        slotEls.forEach(function (el, i) {
+            el.classList.toggle("got", stamped.indexOf(i) !== -1);
+        });
+        guideItems.forEach(function (el, i) {
+            el.classList.toggle("done", stamped.indexOf(i) !== -1);
+        });
+        $("stampCount").textContent = stamped.length;
+    }
+
+    function selectDish(i) {
+        cur = i;
+        var d = dishes[i];
+        stalls.forEach(function (el, k) { el.classList.toggle("active", k === i); });
+        guideItems.forEach(function (el, k) { el.setAttribute("aria-current", k === i ? "true" : "false"); });
+
+        $("menuGuide").classList.add("hidden");
+        var card = $("dishCard");
+        card.classList.remove("hidden");
+        /* 重新触发贴纸动画 */
+        card.style.animation = "none";
+        void card.offsetWidth;
+        card.style.animation = "";
+
+        $("dishImg").src = d.img;
+        $("dishImg").alt = d.name;
+        $("dishNo").textContent = "第 " + CN[i] + " 摊";
+        $("dishName").textContent = d.name;
+        $("dishAka").textContent = d.aka;
+        $("dishStory").textContent = d.story;
+        $("dishNote").textContent = d.note;
+
+        var tags = $("dishTags");
+        tags.innerHTML = "";
+        d.tags.forEach(function (t) {
+            var s = document.createElement("span");
+            s.className = "tag";
+            s.textContent = t;
+            tags.appendChild(s);
+        });
+
+        var photo = document.querySelector(".dish-photo");
+        var old = photo.querySelector(".photo-stamp");
+        if (old) old.parentNode.removeChild(old);
+
+        var done = stamped.indexOf(i) !== -1;
+        var btn = $("sealBtn");
+        if (done) {
+            btn.classList.add("stamped");
+            btn.textContent = "此味已录 · 食印在帖";
+            var mark = document.createElement("span");
+            mark.className = "photo-stamp";
+            mark.textContent = d.seal;
+            photo.appendChild(mark);
+        } else {
+            btn.classList.remove("stamped");
+            btn.textContent = "盖一枚食印";
+        }
+        $("menuBoard").scrollTop = 0;
+    }
+
+    function doStamp() {
+        if (cur < 0 || stamped.indexOf(cur) !== -1) return;
+        stamped.push(cur);
+        try { localStorage.setItem(storeKey, JSON.stringify(stamped)); } catch (e) {}
+        renderPassport();
+        selectDish(cur);
+
+        if (stamped.length === dishes.length) {
+            setTimeout(function () { $("finale").classList.add("show"); }, 650);
+        }
+    }
+
+    /* —— 事件 —— */
+    stalls.forEach(function (el) {
+        el.addEventListener("click", function () { selectDish(parseInt(el.getAttribute("data-i"), 10)); });
+    });
+    $("sealBtn").addEventListener("click", doStamp);
+    $("fClose").addEventListener("click", function () { $("finale").classList.remove("show"); });
+    $("fReset").addEventListener("click", function () {
+        stamped = [];
+        try { localStorage.removeItem(storeKey); } catch (e) {}
+        renderPassport();
+        $("finale").classList.remove("show");
+        if (cur >= 0) selectDish(cur);
+    });
+    document.addEventListener("keydown", function (e) {
+        if ($("finale").classList.contains("show")) {
+            if (e.key === "Escape") $("finale").classList.remove("show");
+            return;
+        }
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+            e.preventDefault();
+            selectDish(cur < 0 ? 0 : (cur + 1) % dishes.length);
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            if (cur < 0) return;
+            e.preventDefault();
+            selectDish((cur - 1 + dishes.length) % dishes.length);
+        } else if (e.key === "Enter" && document.activeElement === document.body && cur >= 0) {
+            doStamp();
+        }
+    });
+
+    renderPassport();
+})();
+</script>
+<script src="music.js" defer></script>
+</body>
+</html>

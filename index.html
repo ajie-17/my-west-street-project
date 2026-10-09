@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寻迹弋阳西街</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --ink: #2a231c;          /* 墨色 */
+            --ink-soft: #4c4338;     /* 正文灰墨 */
+            --paper: #f7f1e6;        /* 宣纸 */
+            --paper-deep: #ede2cd;   /* 宣纸·深 */
+            --tile: #43505a;         /* 青瓦 */
+            --cinnabar: #a83a2b;     /* 朱砂印 */
+            --wood: #7d6147;         /* 旧木 */
+        }
+        html, body { height: 100%; }
+        body {
+            font-family: "SimSun", "宋体", "Songti SC", "Noto Serif SC", serif;
+            color: var(--ink-soft);
+            -webkit-font-smoothing: antialiased;
+        }
+        .wrapper {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            background:
+                linear-gradient(rgba(22, 18, 14, 0.38), rgba(22, 18, 14, 0.52)),
+                radial-gradient(120% 90% at 50% 42%, rgba(22, 18, 14, 0.04) 0%, rgba(22, 18, 14, 0.5) 100%),
+                url("image\\西街门口.png");
+            background-size: cover;
+            background-position: center;
+        }
+        .text-card {
+            position: relative;
+            width: min(880px, 100%);
+            padding: 72px 68px 54px;
+            background: rgba(247, 241, 230, 0.96);
+            border: 1px solid rgba(67, 80, 90, 0.16);
+            border-radius: 6px;
+            box-shadow: 0 24px 60px rgba(16, 12, 8, 0.35);
+            animation: cardIn 0.8s cubic-bezier(0.22, 0.9, 0.26, 1) both;
+        }
+        /* 宣纸的细密纤维质感 */
+        .text-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: repeating-linear-gradient(0deg, rgba(90, 70, 40, 0.02) 0 1px, transparent 1px 3px);
+            pointer-events: none;
+        }
+        /* 马头墙剪影，像老屋屋顶盖在门牌之上 */
+        .roofline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 52px;
+            color: var(--tile);
+            transform: translateY(-100%);
+            pointer-events: none;
+            animation: roofIn 0.9s cubic-bezier(0.22, 0.9, 0.26, 1) 0.15s both;
+        }
+        .roofline svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.28));
+        }
+        .title-row {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 18px;
+        }
+        .title {
+            font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+            font-weight: normal;
+            font-size: clamp(40px, 7vw, 64px);
+            line-height: 1.12;
+            letter-spacing: 0.14em;
+            padding-left: 0.14em; /* 抵消末尾字距，保持视觉居中 */
+            color: var(--ink);
+            text-align: center;
+        }
+        /* 朱砂印章：像书画落款 */
+        .seal {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            width: 46px;
+            height: 46px;
+            margin-top: 12px;
+            background: var(--cinnabar);
+            color: var(--paper);
+            border-radius: 4px;
+            font-family: "KaiTi", "楷体", serif;
+            font-size: 18px;
+            line-height: 1;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26), 0 3px 10px rgba(168, 58, 43, 0.45);
+            animation: stamp 0.5s cubic-bezier(0.2, 1.6, 0.35, 1) 0.5s both;
+        }
+        .intro {
+            max-width: 34em;
+            margin: 0 auto 42px;
+            font-size: clamp(17px, 2.1vw, 20px);
+            line-height: 2;
+            letter-spacing: 0.04em;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+        .button-area {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            max-width: 660px;
+            margin: 0 auto;
+        }
+        .custom-btn {
+            position: relative;
+            overflow: hidden;
+            padding: 14px 26px;
+            font-family: inherit;
+            font-size: 19px;
+            letter-spacing: 0.06em;
+            color: var(--ink);
+            background: transparent;
+            border: 1px solid rgba(125, 97, 71, 0.55);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.25s ease, background-color 0.25s ease,
+                        border-color 0.25s ease, box-shadow 0.25s ease;
+            animation: btnIn 0.5s ease both;
+        }
+        .custom-btn:nth-child(1) { animation-delay: 0.55s; }
+        .custom-btn:nth-child(2) { animation-delay: 0.65s; }
+        .custom-btn:nth-child(3) { animation-delay: 0.75s; }
+        .custom-btn:nth-child(4) { animation-delay: 0.85s; }
+        /* 首字（观/探/访/寻）以朱砂点睛 */
+        .custom-btn .verb {
+            margin-right: 2px;
+            font-family: "KaiTi", "楷体", serif;
+            font-weight: bold;
+            color: var(--cinnabar);
+        }
+        .custom-btn::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--cinnabar);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .custom-btn:hover {
+            background-color: var(--paper-deep);
+            border-color: var(--tile);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 12, 8, 0.16);
+        }
+        .custom-btn:hover::after { transform: scaleX(1); }
+        .custom-btn:focus-visible {
+            outline: 2px solid var(--cinnabar);
+            outline-offset: 3px;
+        }
+        .caption {
+            margin-top: 38px;
+            font-size: 14px;
+            letter-spacing: 0.32em;
+            text-indent: 0.32em;
+            color: var(--tile);
+            text-align: center;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(22px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes roofIn {
+            from { opacity: 0; transform: translateY(-72%); }
+            to { opacity: 1; transform: translateY(-100%); }
+        }
+        @keyframes stamp {
+            from { opacity: 0; transform: scale(1.6) rotate(-5deg); }
+            to { opacity: 1; transform: scale(1) rotate(0); }
+        }
+        @keyframes btnIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @media (max-width: 640px) {
+            .text-card { padding: 60px 22px 40px; }
+            .roofline { height: 40px; }
+            .seal { width: 40px; height: 40px; font-size: 16px; margin-top: 10px; }
+            .button-area { gap: 12px; }
+            .custom-btn { flex: 1 1 42%; padding: 12px 16px; font-size: 17px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; transition: none !important; }
+            .roofline { transform: translateY(-100%); opacity: 1; }
+            .custom-btn, .seal { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 开场视频：播毕缓缓淡出，露出首页 ===== -->
+    <div id="xjIntro" class="xj-intro">
+        <video id="xjIntroVideo" class="xj-intro-video"
+               src="assets/audio/开头视频.mp4"
+               autoplay muted playsinline preload="auto"
+               disablepictureinpicture></video>
+        <button class="xj-intro-btn xj-intro-skip" type="button">跳过 ›</button>
+        <button class="xj-intro-btn xj-intro-sound" type="button">声音：关</button>
+        <div class="xj-intro-hint" id="xjIntroHint">轻 点 画 面 · 开 启 声 音</div>
+    </div>
+    <style>
+        .xj-intro {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #0d0a07;
+            transition: opacity 1.6s ease;
+        }
+        .xj-intro.fading { opacity: 0; pointer-events: none; }
+        .xj-intro-video {
+            width: 100%; height: 100%; display: block;
+            object-fit: contain; background: #000;
+        }
+        .xj-intro-btn {
+            position: absolute; z-index: 2;
+            font-family: "KaiTi", "楷体", serif;
+            font-size: 14px; letter-spacing: 0.18em; text-indent: 0.18em;
+            color: var(--paper, #f7f1e6);
+            background: rgba(20, 14, 8, 0.42);
+            border: 1px solid rgba(247, 241, 230, 0.45);
+            border-radius: 30px; padding: 8px 20px; cursor: pointer;
+            backdrop-filter: blur(3px);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .xj-intro-btn:hover { background: rgba(168, 58, 43, 0.85); border-color: rgba(168, 58, 43, 0.9); }
+        .xj-intro-skip { top: 22px; right: 26px; }
+        .xj-intro-sound { left: 26px; bottom: 26px; }
+        .xj-intro-hint {
+            position: absolute; left: 50%; bottom: 38px; z-index: 2;
+            transform: translateX(-50%);
+            font-family: "KaiTi", "楷体", serif;
+            font-size: 15px; letter-spacing: 0.22em; text-indent: 0.22em;
+            color: #f7f1e6; background: rgba(20, 14, 8, 0.5);
+            border: 1px solid rgba(217, 167, 79, 0.6); border-radius: 30px;
+            padding: 8px 24px; cursor: pointer;
+            animation: xjHintPulse 1.9s ease-in-out infinite;
+        }
+        .xj-intro-hint.hide { display: none; }
+        @keyframes xjHintPulse {
+            0%, 100% { opacity: 0.65; }
+            50% { opacity: 1; }
+        }
+        @media (max-width: 640px) {
+            .xj-intro-btn { font-size: 13px; padding: 7px 15px; }
+            .xj-intro-skip { top: 14px; right: 14px; }
+            .xj-intro-sound { left: 14px; bottom: 14px; }
+            .xj-intro-hint { font-size: 13px; bottom: 60px; padding: 7px 16px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .xj-intro { transition-duration: 0.4s; }
+            .xj-intro-hint { animation: none; }
+        }
+    </style>
+    <script>
+    (function () {
+        var intro = document.getElementById("xjIntro");
+        var v = document.getElementById("xjIntroVideo");
+        var skipBtn = intro.querySelector(".xj-intro-skip");
+        var soundBtn = intro.querySelector(".xj-intro-sound");
+        var hint = document.getElementById("xjIntroHint");
+        var faded = false, earlyFade = false, fadeTimer = null;
+
+        /* 彻底移除开场层并释放视频解码资源 */
+        function finish() {
+            if (!intro.parentNode) return;
+            try { v.pause(); } catch (e) {}
+            intro.parentNode.removeChild(intro);
+            v.removeAttribute("src");
+            try { v.load(); } catch (e) {}
+        }
+        function fadeOut() {
+            if (faded) return;
+            faded = true;
+            intro.classList.add("fading");
+            clearTimeout(fadeTimer);
+            fadeTimer = setTimeout(finish, 1700);
+        }
+
+        /* 浏览器策略：先静音自动播放；用户手势后可解除静音 */
+        var p = v.play();
+        if (p && p.catch) p.catch(function () {});
+
+        function setSound(on) {
+            v.muted = !on;
+            soundBtn.textContent = on ? "声音：开" : "声音：关";
+            if (on) {
+                hint.classList.add("hide");
+                var pr = v.play();
+                if (pr && pr.catch) pr.catch(function () {});
+            }
+        }
+        /* 轻点画面或提示语即开声；声音按钮手动切换 */
+        intro.addEventListener("click", function (e) {
+            if ((e.target === v || e.target === hint) && v.muted) setSound(true);
+        });
+        soundBtn.addEventListener("click", function () { setSound(v.muted); });
+        skipBtn.addEventListener("click", fadeOut);
+
+        /* 临近结尾提前进入淡出，与最后画面交叠，过渡更柔和 */
+        v.addEventListener("timeupdate", function () {
+            if (!earlyFade && isFinite(v.duration) && v.duration - v.currentTime <= 1.4) {
+                earlyFade = true;
+                intro.classList.add("fading");
+            }
+        });
+        v.addEventListener("ended", function () {
+            if (earlyFade) { clearTimeout(fadeTimer); setTimeout(finish, 120); }
+            else fadeOut();
+        });
+        /* 视频加载失败时绝不卡住首页 */
+        v.addEventListener("error", function () { setTimeout(fadeOut, 500); });
+    })();
+    </script>
+
+    <div class="wrapper">
+        <div class="text-card">
+            <div class="roofline" aria-hidden="true">
+                <svg viewBox="0 0 1000 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" d="M0,60 L0,39 L40,39 L40,25 L80,25 L80,14 L160,14 L160,25 L200,25 L200,39 L240,39 L240,60 Z M250,60 L250,46 L290,46 L290,36 L330,36 L330,28 L410,28 L410,36 L450,36 L450,46 L490,46 L490,60 Z M500,60 L500,42 L540,42 L540,30 L580,30 L580,20 L660,20 L660,30 L700,30 L700,42 L740,42 L740,60 Z M750,60 L750,44 L790,44 L790,33 L830,33 L830,24 L910,24 L910,33 L950,33 L950,44 L990,44 L990,60 Z"/>
+                </svg>
+            </div>
+
+            <div class="title-row">
+                <h1 class="title">寻迹弋阳西街</h1>
+                <span class="seal" aria-hidden="true"><span>西</span><span>街</span></span>
+            </div>
+
+            <p class="intro">
+                弋阳西街，这条弋阳小城百年绵延的老街，白墙木窗、石板长街藏着乡土的密码。我们该从服务路径，读懂这条老街。
+            </p>
+
+            <div class="button-area">
+                <button class="custom-btn" onclick="openGroup('group1.html')"><span class="verb">观</span>老街今貌</button>
+                <button class="custom-btn" onclick="openGroup('group2.html')"><span class="verb">探</span>古建文脉</button>
+                <button class="custom-btn" onclick="openGroup('group3.html')"><span class="verb">访</span>烟火生活</button>
+                <button class="custom-btn" onclick="openGroup('group4.html')"><span class="verb">寻</span>西街味道</button>
+            </div>
+
+            <p class="caption">白墙 · 木窗 · 石板长街</p>
+        </div>
+    </div>
+
+    <script src="music.js" defer></script>
+    <script>
+    /* 子页面在全屏 iframe 中打开：顶层文档不刷新，背景音乐单实例持续播放、不中断 */
+    var xjFrame = null;
+    function openGroup(url) {
+        if (!xjFrame) {
+            xjFrame = document.createElement("iframe");
+            xjFrame.id = "xjFrame";
+            xjFrame.className = "xj-frame";
+            xjFrame.setAttribute("allow", "autoplay");
+            document.body.appendChild(xjFrame);
+        }
+        xjFrame.src = url;
+        document.body.classList.add("xj-frame-open");
+        // 借此次点击手势预热音频上下文，子页面内点音乐开关即可即时出声
+        if (window.__XIJIE_MUSIC__ && window.__XIJIE_MUSIC__.unlock) window.__XIJIE_MUSIC__.unlock();
+        // iframe 加载后把当前播放状态同步给它的开关
+        xjFrame.onload = function () {
+            if (window.__XIJIE_MUSIC__) {
+                var s = window.__XIJIE_MUSIC__.getState();
+                try { xjFrame.contentWindow.postMessage({ type: "xijie-music-state", on: s.playing }, "*"); } catch (e) {}
+            }
+        };
+    }
+    function closeGroup() {
+        document.body.classList.remove("xj-frame-open");
+        if (xjFrame) {
+            xjFrame.onload = function () { xjFrame.onload = null; };
+            xjFrame.src = "about:blank";
+        }
+    }
+    window.addEventListener("message", function (e) {
+        var d = e.data;
+        if (d && d.type === "xijie-back") closeGroup();
+    });
+    </script>
+    <style>
+        /* 全屏承载子页面的镜头层；音乐按钮属于顶层文档，层级更高并保持可点 */
+        .xj-frame {
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            border: 0; background: #f7f1e6; z-index: 50; display: none;
+        }
+        body.xj-frame-open .xj-frame { display: block; }
+        /* iframe 打开时隐藏顶层的音乐开关，避免与子页面内的开关重复 */
+        body.xj-frame-open .xj-music { display: none !important; }
+    </style>
+</body>
+</html>

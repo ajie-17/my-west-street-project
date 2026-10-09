@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>探古建文脉 · 弋阳西街</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+        --ink: #2a231c;
+        --ink-soft: #4c4338;
+        --paper: #f7f1e6;
+        --paper-deep: #ede2cd;
+        --tile: #43505a;
+        --cinnabar: #a83a2b;
+        --wood: #7d6147;
+        --gold: #c8a45c;
+    }
+    html, body { height: 100%; }
+    body {
+        font-family: "SimSun", "宋体", "Songti SC", "Noto Serif SC", serif;
+        color: var(--ink-soft);
+        background:
+            repeating-linear-gradient(0deg, rgba(90, 70, 40, 0.03) 0 1px, transparent 1px 4px),
+            linear-gradient(rgba(247, 241, 230, 0.62), rgba(243, 235, 220, 0.66)),
+            url("image/项目1/项目一背景.jpg") center center / cover no-repeat fixed;
+        overflow: hidden;
+    }
+
+    .page { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+
+    /* ===== 顶部栏 ===== */
+    .topbar {
+        position: relative; z-index: 10;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 28px;
+        background: linear-gradient(180deg, rgba(247, 241, 230, 0.94), rgba(247, 241, 230, 0.6));
+        border-bottom: 1px solid rgba(125, 97, 71, 0.22);
+        backdrop-filter: blur(4px);
+    }
+    .back-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 16px; font-family: inherit; font-size: 15px; color: var(--ink);
+        background: transparent; border: 1px solid rgba(125, 97, 71, 0.5); border-radius: 4px;
+        cursor: pointer; transition: all 0.25s ease;
+    }
+    .back-btn:hover { background: var(--paper-deep); border-color: var(--tile); transform: translateX(-2px); }
+    .group-label { font-family: "KaiTi", "楷体", serif; font-size: 15px; letter-spacing: 0.2em; color: var(--wood); }
+    .page-title {
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: clamp(24px, 3.2vw, 36px); letter-spacing: 0.16em; color: var(--ink); padding-left: 0.16em;
+    }
+    .page-title .verb { color: var(--cinnabar); font-weight: bold; }
+
+    /* ===== 主体：左简介 + 右图纸 ===== */
+    .main {
+        flex: 1; min-height: 0;
+        display: grid; grid-template-columns: minmax(290px, 340px) 1fr;
+        gap: 26px; padding: 22px 30px 12px;
+    }
+
+    /* 文字卷 */
+    .scroll {
+        position: relative;
+        background: rgba(247, 241, 230, 0.96);
+        border: 1px solid rgba(67, 80, 90, 0.18);
+        border-radius: 6px;
+        box-shadow: 0 16px 40px rgba(16, 12, 8, 0.22);
+        padding: 24px 24px 20px;
+        overflow-y: auto;
+        transition: opacity 0.35s ease;
+    }
+    .scroll::before {
+        content: ""; position: absolute; inset: 0; border-radius: inherit;
+        background: repeating-linear-gradient(0deg, rgba(90, 70, 40, 0.02) 0 1px, transparent 1px 3px);
+        pointer-events: none;
+    }
+    .scroll.switching { opacity: 0; }
+    .scroll-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+    .scroll-num {
+        font-family: "KaiTi", "楷体", serif; font-size: 15px; letter-spacing: 0.14em;
+        color: var(--paper); background: var(--cinnabar);
+        padding: 3px 10px; border-radius: 3px; white-space: nowrap;
+    }
+    .scroll-cat { font-family: "KaiTi", "楷体", serif; font-size: 14px; color: var(--wood); letter-spacing: 0.1em; }
+    .scroll-title {
+        position: relative;
+        font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif;
+        font-size: clamp(23px, 2.4vw, 30px); letter-spacing: 0.08em; color: var(--ink);
+        margin: 12px 0 12px;
+    }
+    .scroll-title::before { content: "❖"; color: var(--cinnabar); margin-right: 8px; font-size: 0.7em; }
+    .scroll-intro { position: relative; font-size: 14.5px; line-height: 1.95; letter-spacing: 0.03em; }
+    .scroll-tags { position: relative; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .tag {
+        font-family: "KaiTi", "楷体", serif; font-size: 13px; letter-spacing: 0.06em;
+        color: var(--tile); background: rgba(67, 80, 90, 0.08);
+        border: 1px solid rgba(67, 80, 90, 0.25); border-radius: 20px; padding: 3px 12px;
+    }
+    .scroll-hint {
+        position: relative; margin-top: 18px; padding-top: 14px;
+        border-top: 1px dashed rgba(125, 97, 71, 0.4);
+        font-family: "KaiTi", "楷体", serif; font-size: 13.5px; color: var(--wood); line-height: 1.8;
+    }
+    .scroll-hint b { color: var(--cinnabar); }
+    .scroll-hint .dot-mini {
+        display: inline-block; width: 15px; height: 15px; line-height: 15px; text-align: center;
+        background: var(--cinnabar); color: #fff; border-radius: 50%; font-size: 10px;
+        vertical-align: -2px; margin: 0 3px; font-family: "SimSun", serif;
+    }
+
+    /* 图纸区 */
+    .plate { position: relative; display: flex; flex-direction: column; min-height: 0; }
+    .plate-frame {
+        position: relative; flex: 1; min-height: 0;
+        display: flex; align-items: center; justify-content: center;
+        padding: 6px;
+    }
+    .photo-wrap {
+        position: relative; display: inline-block;
+        background: rgba(247, 241, 230, 0.96);
+        padding: 10px 10px 34px;
+        border-radius: 4px;
+        box-shadow: 0 20px 50px rgba(16, 12, 8, 0.35);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+        cursor: default;
+    }
+    .photo-wrap.switching { opacity: 0; transform: translateY(14px); }
+    .photo-wrap::after {  /* 照片下方的题签 */
+        content: attr(data-caption);
+        position: absolute; left: 12px; bottom: 8px;
+        font-family: "KaiTi", "楷体", serif; font-size: 13px; letter-spacing: 0.18em; color: var(--wood);
+    }
+    /* 热点定位层：与图片严丝合缝，百分比即图片自身坐标 */
+    .photo-stage { position: relative; display: inline-block; line-height: 0; font-size: 0; }
+    .photo-wrap img {
+        display: block; max-width: 100%; max-height: calc(100vh - 250px);
+        width: auto; height: auto; border-radius: 2px;
+    }
+    /* 热点：朱红编号圆点 + 呼吸光圈 */
+    .hotspot {
+        position: absolute; width: 30px; height: 30px;
+        transform: translate(-50%, -50%);
+        border: none; background: transparent; padding: 0; cursor: pointer; z-index: 3;
+    }
+    .hotspot .pin {
+        position: absolute; inset: 0; border-radius: 50%;
+        background: var(--cinnabar); color: #fff;
+        font-family: "KaiTi", "楷体", serif; font-size: 15px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+        transition: transform 0.2s ease;
+    }
+    .hotspot .ring {
+        position: absolute; inset: -5px; border-radius: 50%;
+        border: 2px solid var(--cinnabar); opacity: 0.75;
+        animation: pulse 1.8s ease-out infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(0.8); opacity: 0.8; }
+        70% { transform: scale(1.7); opacity: 0; }
+        100% { transform: scale(1.7); opacity: 0; }
+    }
+    .hotspot:hover .pin, .hotspot:focus-visible .pin { transform: scale(1.18); }
+    .hotspot:focus-visible { outline: none; }
+    .hotspot:focus-visible .pin { box-shadow: 0 0 0 4px rgba(200, 164, 92, 0.55), 0 2px 8px rgba(0,0,0,.45); }
+    .hotspot .tip {
+        position: absolute; left: 50%; bottom: 130%; transform: translateX(-50%) translateY(4px);
+        background: rgba(42, 35, 28, 0.92); color: var(--paper);
+        font-family: "KaiTi", "楷体", serif; font-size: 13px; letter-spacing: 0.06em;
+        padding: 5px 11px; border-radius: 4px; white-space: nowrap;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .hotspot .tip::after {
+        content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+        border: 5px solid transparent; border-top-color: rgba(42, 35, 28, 0.92);
+    }
+    .hotspot:hover .tip, .hotspot:focus-visible .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== 底部控制 ===== */
+    .controls {
+        position: relative; z-index: 10;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 32px 18px;
+        background: linear-gradient(0deg, rgba(247, 241, 230, 0.96), rgba(247, 241, 230, 0.55));
+        border-top: 1px solid rgba(125, 97, 71, 0.22);
+    }
+    .progress { font-family: "KaiTi", "楷体", serif; font-size: 16px; color: var(--wood); letter-spacing: 0.15em; }
+    .progress .cur { color: var(--cinnabar); font-weight: bold; font-size: 20px; }
+    .progress .sep { margin: 0 6px; opacity: 0.5; }
+    .ctrl-btns { display: flex; gap: 12px; }
+    .ghost-btn, .continue-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: inherit; border-radius: 4px; cursor: pointer; transition: all 0.25s ease;
+    }
+    .ghost-btn {
+        padding: 12px 20px; font-size: 15px; letter-spacing: 0.1em; color: var(--wood);
+        background: transparent; border: 1px solid rgba(125, 97, 71, 0.5);
+    }
+    .ghost-btn:hover:not(:disabled) { background: var(--paper-deep); color: var(--ink); border-color: var(--tile); }
+    .ghost-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .continue-btn {
+        padding: 12px 28px; font-size: 16px; letter-spacing: 0.12em;
+        color: var(--paper); background: var(--tile); border: none;
+        box-shadow: 0 6px 18px rgba(67, 80, 90, 0.35);
+    }
+    .continue-btn:hover { background: var(--cinnabar); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(168, 58, 43, 0.4); }
+    .continue-btn.finished { background: var(--cinnabar); }
+
+    /* ===== 构件放大灯箱 ===== */
+    .lightbox {
+        position: fixed; inset: 0; z-index: 100;
+        background: rgba(20, 16, 12, 0.82);
+        display: flex; flex-direction: column;
+        opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
+    }
+    .lightbox.open { opacity: 1; visibility: visible; }
+    .lb-top {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 22px; color: var(--paper);
+    }
+    .lb-title { font-family: "STXingkai", "华文行楷", "KaiTi", "楷体", serif; font-size: 22px; letter-spacing: 0.12em; }
+    .lb-title .lb-num {
+        font-family: "KaiTi", "楷体", serif; font-size: 13px; letter-spacing: 0.1em;
+        background: var(--cinnabar); padding: 3px 10px; border-radius: 3px; margin-right: 12px;
+    }
+    .lb-close {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: rgba(247, 241, 230, 0.14); border: 1px solid rgba(247, 241, 230, 0.4);
+        color: var(--paper); font-size: 20px; line-height: 1; cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .lb-close:hover { background: var(--cinnabar); }
+    .lb-viewport {
+        position: relative; flex: 1; min-height: 0; margin: 0 22px; overflow: hidden;
+        border-radius: 6px; background: #14100c;
+        border: 1px solid rgba(200, 164, 92, 0.35);
+        cursor: grab;
+    }
+    .lb-viewport.dragging { cursor: grabbing; }
+    .lb-stage {
+        position: absolute; left: 0; top: 0;
+        transform-origin: 0 0;
+        will-change: transform;
+    }
+    .lb-inner { position: absolute; left: 0; top: 0; }
+    .lb-inner img { display: block; max-width: none; user-select: none; -webkit-user-drag: none; }
+    .lb-marker {
+        position: absolute; width: 46px; height: 46px; transform: translate(-50%, -50%);
+        border: 3px solid var(--gold); border-radius: 50%;
+        pointer-events: none;
+        animation: markerIn 0.4s ease both;
+    }
+    @keyframes markerIn { from { opacity: 0; } to { opacity: 1; } }
+    .lb-marker::after {
+        content: ""; position: absolute; inset: -10px; border-radius: 50%;
+        border: 2px solid rgba(200, 164, 92, 0.8);
+        animation: pulse 1.8s ease-out infinite;
+    }
+    .lb-bottom {
+        display: flex; align-items: stretch; gap: 18px;
+        padding: 16px 22px 20px;
+    }
+    .lb-card {
+        flex: 1;
+        background: rgba(247, 241, 230, 0.97); border-radius: 6px;
+        border: 1px solid rgba(200, 164, 92, 0.5);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        padding: 14px 20px;
+    }
+    .lb-card h3 {
+        font-family: "KaiTi", "楷体", serif; font-size: 20px; letter-spacing: 0.08em;
+        color: var(--cinnabar); margin-bottom: 5px;
+    }
+    .lb-card p { font-size: 14.5px; line-height: 1.85; color: var(--ink-soft); }
+    .lb-nav { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+    .lb-nav button {
+        width: 46px; height: 46px; border-radius: 50%; font-size: 18px;
+        background: rgba(247, 241, 230, 0.12); color: var(--paper);
+        border: 1px solid rgba(247, 241, 230, 0.35); cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .lb-nav button:hover { background: var(--cinnabar); }
+    .lb-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: 10px; }
+    .lb-dots button {
+        width: 9px; height: 9px; padding: 0; border-radius: 50%; border: none;
+        background: rgba(247, 241, 230, 0.3); cursor: pointer;
+    }
+    .lb-dots button.on { background: var(--gold); transform: scale(1.25); }
+
+    /* ===== 窄屏适配 ===== */
+    @media (max-width: 860px) {
+        .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 10px; padding: 12px 14px 6px; }
+        .scroll { max-height: 30vh; padding: 14px 16px; }
+        .scroll-title { margin: 8px 0; font-size: 21px; }
+        .scroll-intro { font-size: 13.5px; line-height: 1.75; }
+        .scroll-tags { margin-top: 10px; }
+        .scroll-hint { display: none; }
+        .photo-wrap img { max-height: calc(100vh - 430px); min-height: 180px; }
+        .controls { padding: 10px 16px 14px; }
+        .ghost-btn { padding: 10px 16px; }
+        .continue-btn { padding: 10px 20px; font-size: 15px; }
+        .lb-bottom { flex-direction: column; padding: 12px 14px 16px; gap: 10px; }
+        .lb-nav { flex-direction: row; }
+        .lb-viewport { margin: 0 12px; }
+        .lb-card { padding: 12px 14px; max-height: 26vh; overflow-y: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; animation: none !important; }
+    }
+</style>
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <button class="back-btn" onclick="if(window.self!==window.top){window.top.postMessage({type:'xijie-back'},'*');}else{location.href='index.html';}">← 返回首页</button>
+        <div class="page-title"><span class="verb">探</span>古建文脉</div>
+        <div class="group-label">第二组 · 赣派民居构件</div>
+    </header>
+
+    <main class="main">
+        <!-- 文字简介（每图一卷） -->
+        <section class="scroll" id="scroll">
+            <div class="scroll-head">
+                <span class="scroll-num" id="sNum">图壹</span>
+                <span class="scroll-cat" id="sCat">赣东北 · 砖木民居</span>
+            </div>
+            <h2 class="scroll-title" id="sTitle"></h2>
+            <p class="scroll-intro" id="sIntro"></p>
+            <div class="scroll-tags" id="sTags"></div>
+            <div class="scroll-hint" id="sHint"></div>
+        </section>
+
+        <!-- 图纸 + 热点 -->
+        <section class="plate">
+            <div class="plate-frame">
+                <figure class="photo-wrap" id="photoWrap" data-caption="">
+                    <div class="photo-stage" id="photoStage">
+                        <img id="photo" src="" alt="">
+                        <!-- 热点由 JS 生成 -->
+                    </div>
+                </figure>
+            </div>
+        </section>
+    </main>
+
+    <footer class="controls">
+        <div class="progress">
+            <span class="cur" id="curNum">1</span>
+            <span class="sep">/</span>
+            <span id="totalNum">6</span>
+            <span style="margin-left:10px;opacity:.7;">建筑实例</span>
+        </div>
+        <div class="ctrl-btns">
+            <button class="ghost-btn" id="prevBtn">← 上一张</button>
+            <button class="continue-btn" id="nextBtn"><span>继续探寻</span><span class="arrow">→</span></button>
+        </div>
+    </footer>
+</div>
+
+<!-- 构件放大灯箱 -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="构件放大查看">
+    <div class="lb-top">
+        <div class="lb-title"><span class="lb-num" id="lbNum">构件 1/4</span><span id="lbPhotoTitle"></span></div>
+        <button class="lb-close" id="lbClose" aria-label="关闭放大视图">✕</button>
+    </div>
+    <div class="lb-viewport" id="lbViewport">
+        <div class="lb-stage" id="lbStage">
+            <div class="lb-inner" id="lbInner">
+                <img id="lbImg" src="" alt="">
+                <div class="lb-marker" id="lbMarker"></div>
+            </div>
+        </div>
+    </div>
+    <div class="lb-dots" id="lbDots"></div>
+    <div class="lb-bottom">
+        <div class="lb-card">
+            <h3 id="lbHotspotTitle"></h3>
+            <p id="lbHotspotDesc"></p>
+        </div>
+        <div class="lb-nav">
+            <button id="lbPrev" aria-label="上一处构件">↑</button>
+            <button id="lbNext" aria-label="下一处构件">↓</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    /* ================= 建筑数据：一图一卷，热点坐标按图片百分比定位 ================= */
+    var buildings = [
+        {
+            num: "图壹", cat: "赣东北 · 砖木民居",
+            title: "二层木板民居",
+            img: "image/项目2/1.jpg",
+            caption: "下店上宅 · 板壁屋",
+            intro: "这是一栋典型的两层砖木民居，属赣东北干栏式民居的变体。下层由廊柱架空，旧时敞开的空间正是沿街店铺的门面；二层以整块竖拼木板作围护墙面，称为“板壁屋”。青砖立柱分隔开间，下配白色抹灰柱础；青瓦屋面出檐深远，为行人遮阳挡雨。隔壁即是现代楼房，老街的新旧肌理在此并肩而立。",
+            tags: ["砖木结构", "下店上宅", "板壁屋", "干栏变体", "新旧共生"],
+            hotspots: [
+                { x: 57, y: 44, t: "青砖立柱 · 抹灰柱础", d: "开间之间以青砖实砌立柱承重，柱脚做白色抹灰柱础，既隔潮防腐，又在深色木墙中划出清晰的竖向节奏。" },
+                { x: 78, y: 22, t: "二层板壁墙", d: "二层用整块长木板竖向拼合作为围护墙，即赣东北常见的“板壁屋”做法，施工便捷、通风防潮，岁月在木板上留下深浅不一的包浆。" },
+                { x: 48, y: 30, t: "方形采光窗", d: "板壁上只开简易小方窗，造型古朴简约，兼顾二层居室的采光、通风与防盗，洞口内收形成浓重的阴影。" },
+                { x: 38, y: 12, t: "青瓦挑檐", d: "小青瓦顺坡铺作，檐口向外挑出，在墙面投下深深的檐影，夏季遮阳、雨季挡水，是南方临街民居的共同语言。" },
+                { x: 58, y: 78, t: "下层廊柱架空", d: "底层以白色方柱把二层整体托起，形成敞廊式架空层——旧时前店后宅，铺面、作坊与茶摊就设在这一排廊檐之下。" },
+                { x: 19, y: 26, t: "新旧并存", d: "板壁屋身后紧挨着贴瓷砖、装防盗网的现代楼房。修旧如旧的老街并非凝固的标本，而是与今日生活共生的街区。" }
+            ]
+        },
+        {
+            num: "图贰", cat: "街巷格局 · 商住老街",
+            title: "西街沿街全景",
+            img: "image/项目2/2.png",
+            caption: "青石板长街 · 连续骑廊",
+            intro: "西街是一条尺度宜人的长条形步行街，青石板铺地，两排两层商住建筑沿街连续展开。底层由白色方柱统一支撑，形成贯通整条街的廊檐（骑廊），行人雨天可不湿鞋。白墙、深褐木构件、青砖勒脚、黛色小瓦，色彩素雅；木门窗保留传统雕花，开间整齐划一，是赣东北商业街的标准形态。",
+            tags: ["青石板街", "连续骑廊", "白墙黛瓦", "商住开间", "雕花门窗"],
+            hotspots: [
+                { x: 55, y: 82, t: "青石板街面", d: "规整的青石板横向铺砌，中为车行道、两侧为高出的廊阶。石板经百年脚步打磨，泛出温润光泽，雨天更显沉静。" },
+                { x: 18, y: 40, t: "连续沿街骑廊", d: "二层向前出挑、由底层列柱支撑，形成连续不断的檐下空间，遮阳避雨，也让逛街、交易、纳凉都在廊下发生。" },
+                { x: 29, y: 62, t: "白方柱 · 青砖勒脚", d: "廊柱统一刷白，柱脚以青砖错缝砌筑勒脚，耐潮耐撞；一柱一开间，柱列的重复韵律正是老街秩序感的来源。" },
+                { x: 41, y: 38, t: "雕花木门窗", d: "二层为红褐木板壁，窗下与门扇饰有菱形、回纹木雕花板；底层新装木门仍按传统花格纹样制作，修旧如旧。" },
+                { x: 27, y: 12, t: "黛色小瓦屋面", d: "檐口一线青瓦随街起伏，瓦当滴水隐约可见。深黛色屋面压住整条街的天际线，与白墙木构构成素雅的三色基调。" },
+                { x: 76, y: 52, t: "标准化商住开间", d: "两侧建筑面宽相近、檐口齐平，下店上宅、前店后坊，是旧时商业街讲求整齐划一的建造制度留下的肌理。" }
+            ]
+        },
+        {
+            num: "图叁", cat: "屋面构件 · 檐口特写",
+            title: "瓦当与滴水",
+            img: "image/项目2/3.jpg",
+            caption: "福寿瓦当 · 云纹滴水",
+            intro: "屋檐是中式屋面最见功夫的地方。西街老屋沿用传统筒瓦、板瓦：半圆的筒瓦瓦头覆上圆形“瓦当”，板瓦垄端垂下尖叶形“滴水”，瓦当上模印福寿团纹，滴水上錾出卷草祥云。一垄垄小青瓦层层叠压，防水耐久；出挑深远的木檐在阳光下切出强烈的明暗，这是赣派民居屋面的标准做法。",
+            tags: ["筒瓦板瓦", "瓦当", "滴水", "福寿纹样", "木挑檐"],
+            hotspots: [
+                { x: 91, y: 30, t: "瓦当", d: "瓦当是檐口筒瓦顶端的圆形挡片，护住瓦垄断面不进雨水。西街瓦当呈半圆花叶形，当面模印团“寿”纹，祈福又统一了檐口轮廓。" },
+                { x: 60, y: 75, t: "滴水", d: "滴水垂于板瓦垄端，形如尖叶，瓦面雨水顺它集中滴落，避免冲刷檐墙；其上雕卷草祥云纹，与瓦当一盖一滴、成对出现。" },
+                { x: 83, y: 42, t: "福寿纹样", d: "瓦当中央是篆书团寿纹，外圈环绕卷草与福在眼前的吉祥母题。小小的瓦件把“福寿绵长”的愿望刻在了每一条瓦垄的尽头。" },
+                { x: 24, y: 40, t: "小青瓦叠压", d: "小青瓦仰面为底、覆面为盖，前后叠压约七成，雨水顺瓦垄直流而下，不渗不漏；瓦色深浅不一，是年代与窑火的痕迹。" },
+                { x: 72, y: 80, t: "木质挑檐", d: "檐口以木椽外挑承瓦，不做封闭吊顶，木作结构完全袒露。强烈的阴影既保护土砖墙脚，也赋予屋檐厚重的水平线条。" }
+            ]
+        },
+        {
+            num: "图肆", cat: "赣派标志 · 封火高墙",
+            title: "马头墙与瓦檐",
+            img: "image/项目2/4.jpg",
+            caption: "阶梯封火 · 粉墙翘角",
+            intro: "高出屋面的阶梯状山墙，就是赣派建筑的标志——马头墙（封火山墙）。旧时街巷木屋鳞次栉比，山墙以青砖实砌、白灰抹面，高出屋顶形成防火墙，邻家失火可阻挡火势蔓延，同时能削减穿堂风、保护瓦面。墙头随屋面跌落成阶，脊端用青瓦做出翘角垛头；檐口雕花瓦当一路延续，背景中的现代楼房则写下又一笔新旧对比。",
+            tags: ["马头墙", "封火隔离", "防风压檐", "翘角垛头", "新旧对话"],
+            hotspots: [
+                { x: 70, y: 62, t: "阶梯式马头墙", d: "山墙随屋顶坡度一级级跌落，形似昂首马头，故称马头墙。墙体高出屋面并实砌到顶，是木构邻里之间最重要的防火屏障。" },
+                { x: 90, y: 60, t: "翘角垛头", d: "每级墙头以小青瓦压顶、端头起翘成“鹊尾式”垛头，既封住砖体不被雨水渗入，又让硬朗的阶梯轮廓有了向上的动势。" },
+                { x: 33, y: 50, t: "雕花瓦当檐口", d: "民居檐口仍整齐排列福寿瓦当与云纹滴水，与图叁的构件做法一脉相承——整条西街的屋面语言是统一的。" },
+                { x: 78, y: 80, t: "白灰粉面", d: "墙面以白灰抹面，经年风蚀后泛出暖黄与水渍。粉墙黛瓦在蓝天之下明度对比强烈，是赣派民居最醒目的色彩。" },
+                { x: 18, y: 12, t: "新旧对比", d: "马头墙后方紧贴铝合金玻璃窗的现代楼房。古老的封火墙不再需要防火，却作为街区天际线被完整保留下来。" }
+            ]
+        },
+        {
+            num: "图伍", cat: "木作精华 · 棂花细部",
+            title: "万字纹雕花木窗",
+            img: "image/项目2/5.jpg",
+            caption: "万字花格 · 卷草绦环",
+            intro: "这扇外开窗是赣派民居木作工艺的集中展示。窗心用细木条榫卯拼成连续转折的“万字不到头”几何花格，寓意万寿绵延、循环不绝；上下绦环板满雕卷草纹，线条流畅。花格窗兼具采光、通风与防护三重功能，窗扇以合页外开，保留传统木窗的开启方式；木材选用硬木，百年不松，是民居装饰的精华所在。",
+            tags: ["万字纹", "榫卯花格", "卷草雕花", "外开窗扇", "硬木作"],
+            hotspots: [
+                { x: 52, y: 58, t: "万字纹花格", d: "棂条以榫卯拼成连续回旋的卍字几何纹，无头无尾、连绵不断，称“万字不到头”，寓意万寿绵长；同时有效遮挡视线、防护窗洞。" },
+                { x: 54, y: 80, t: "卷草纹绦环板", d: "窗心上下的花板（绦环板）满雕缠枝卷草，浅浮雕层次均匀、线条舒展，与几何花格的理性形成一刚一柔的对比。" },
+                { x: 84, y: 52, t: "外开窗扇 · 合页", d: "窗扇绕侧边铁合页向外开启，挂钩固定，是江南木窗的传统做法；外开不占室内空间，又便于擦拭窗棂。" },
+                { x: 6, y: 55, t: "硬木窗框", d: "整窗以硬木制作，框、棂、板同材同色。硬木纹理细密、不易变形，榫卯咬合紧密，历经百年仍开关自如。" },
+                { x: 33, y: 8, t: "檐口瓦当", d: "窗顶一线仍是福寿瓦当与滴水，说明精美的窗扇与屋面构件在同一栋民居上成套出现，匠作体系完整统一。" }
+            ]
+        },
+        {
+            num: "图陆", cat: "公共礼制 · 祠堂寺观",
+            title: "街区庙宇建筑",
+            img: "image/项目2/6.jpg",
+            caption: "重檐歇山 · 斗拱彩画",
+            intro: "这是街区配套的传统庙宇，属祠堂寺观类古建筑，等级与装饰都明显高于素雅民居。屋顶采用重檐歇山顶，檐角飞扬；檐下层层斗拱承托出挑，并满施蓝、绿、红三色传统彩画，描金点缀。红漆大柱排列于月台之上，木雕花窗、石质宝瓶栏杆环绕，黄色墙身是寺观的典型色彩。它是西街的公共礼制中心，与朴素的商住民居构成鲜明的等级对比。",
+            tags: ["重檐歇山顶", "飞檐翘角", "斗拱彩画", "红漆柱", "汉白玉栏杆"],
+            hotspots: [
+                { x: 72, y: 22, t: "重檐歇山顶 · 飞檐翘角", d: "两层屋檐、九条屋脊的歇山顶等级仅次于庑殿顶；檐角向天空大幅起翘，脊端置宝顶，使庞大的屋顶显得轻盈欲飞。" },
+                { x: 52, y: 46, t: "斗拱彩画", d: "檐下成排斗拱层层挑出，把屋面重量传递给柱身；拱眼壁与额枋满绘蓝绿红三色旋子彩画并描金，华丽庄重。" },
+                { x: 61, y: 66, t: "红漆木柱", d: "一圈粗壮圆柱髹朱红大漆，与民居白柱形成等级区分；柱身挂金字抱柱楹联，点明庙宇的供奉与规制。" },
+                { x: 52, y: 84, t: "汉白玉栏杆", d: "月台边缘设灰白色石雕栏杆，望柱、宝瓶式栏板比例规整，既是围护，也通过石作的精细程度烘托建筑等级。" },
+                { x: 88, y: 90, t: "黄色庙墙", d: "墙身通体刷成明黄色——寺观祠庙的专用色彩。暖黄墙、朱红柱与青绿彩画组合，正是传统宗教建筑的标识性配色。" }
+            ]
+        }
+    ];
+
+    /* ================= DOM ================= */
+    var photoWrap = document.getElementById("photoWrap");
+    var photoStage = document.getElementById("photoStage");
+    var photo = document.getElementById("photo");
+    var sNum = document.getElementById("sNum");
+    var sCat = document.getElementById("sCat");
+    var sTitle = document.getElementById("sTitle");
+    var sIntro = document.getElementById("sIntro");
+    var sTags = document.getElementById("sTags");
+    var sHint = document.getElementById("sHint");
+    var scroll = document.getElementById("scroll");
+    var prevBtn = document.getElementById("prevBtn");
+    var nextBtn = document.getElementById("nextBtn");
+    var curNum = document.getElementById("curNum");
+    document.getElementById("totalNum").textContent = buildings.length;
+
+    var cur = 0;
+
+    function render(i, dir) {
+        var b = buildings[i];
+        var switching = function () {
+            photo.src = b.img;
+            photo.alt = b.title;
+            photoWrap.setAttribute("data-caption", b.caption);
+            sNum.textContent = b.num;
+            sCat.textContent = b.cat;
+            sTitle.textContent = b.title;
+            sIntro.textContent = b.intro;
+            sTags.innerHTML = b.tags.map(function (t) { return '<span class="tag">' + t + "</span>"; }).join("");
+            sHint.innerHTML = '本图共有 <b>' + b.hotspots.length +
+                '</b> 处构件亮点，点击图中的 <span class="dot-mini">号</span> 朱红圆点即可<b>放大细看</b>。';
+            buildHotspots(b);
+            curNum.textContent = i + 1;
+            prevBtn.disabled = i === 0;
+            if (i >= buildings.length - 1) {
+                nextBtn.classList.add("finished");
+                nextBtn.innerHTML = '<span>再看一遍</span><span class="arrow">↺</span>';
+            } else {
+                nextBtn.classList.remove("finished");
+                nextBtn.innerHTML = '<span>继续探寻</span><span class="arrow">→</span>';
+            }
+        };
+        // 淡出再换入，一次只呈现一张图、一段简介
+        scroll.classList.add("switching");
+        photoWrap.classList.add("switching");
+        setTimeout(function () {
+            switching();
+            requestAnimationFrame(function () {
+                scroll.classList.remove("switching");
+                photoWrap.classList.remove("switching");
+            });
+        }, 280);
+    }
+
+    function buildHotspots(b) {
+        photoStage.querySelectorAll(".hotspot").forEach(function (n) { n.remove(); });
+        b.hotspots.forEach(function (h, idx) {
+            var btn = document.createElement("button");
+            btn.className = "hotspot";
+            btn.style.left = h.x + "%";
+            btn.style.top = h.y + "%";
+            btn.setAttribute("aria-label", "构件：" + h.t);
+            btn.innerHTML =
+                '<span class="ring" style="animation-delay:' + (idx * 0.25) + 's"></span>' +
+                '<span class="pin">' + cnNum(idx + 1) + '</span>' +
+                '<span class="tip">' + (idx + 1) + ". " + h.t + "</span>";
+            btn.addEventListener("click", function () { openLightbox(cur, idx); });
+            photoStage.appendChild(btn);
+        });
+    }
+    function cnNum(n) { return ["一", "二", "三", "四", "五", "六", "七", "八"][n - 1] || n; }
+
+    nextBtn.addEventListener("click", function () {
+        if (cur >= buildings.length - 1) { cur = 0; render(0); }
+        else { cur++; render(cur); }
+    });
+    prevBtn.addEventListener("click", function () {
+        if (cur > 0) { cur--; render(cur); }
+    });
+
+    /* ================= 放大灯箱：以热点为中心缩放平移 ================= */
+    var lightbox = document.getElementById("lightbox");
+    var lbImg = document.getElementById("lbImg");
+    var lbStage = document.getElementById("lbStage");
+    var lbMarker = document.getElementById("lbMarker");
+    var lbViewport = document.getElementById("lbViewport");
+    var lbNum = document.getElementById("lbNum");
+    var lbPhotoTitle = document.getElementById("lbPhotoTitle");
+    var lbTitle = document.getElementById("lbHotspotTitle");
+    var lbDesc = document.getElementById("lbHotspotDesc");
+    var lbDots = document.getElementById("lbDots");
+    var lbClose = document.getElementById("lbClose");
+    var lbPrev = document.getElementById("lbPrev");
+    var lbNext = document.getElementById("lbNext");
+
+    var lbBuilding = 0, lbHotspot = 0, lbZoom = 2.4;
+    // 图片在视口中 contain 适配后的布局（未缩放状态）
+    var lbLayout = { w: 0, h: 0, x: 0, y: 0 };
+
+    function layoutInner() {
+        var vp = lbViewport.getBoundingClientRect();
+        var nw = lbImg.naturalWidth || 1600, nh = lbImg.naturalHeight || 900;
+        var s0 = Math.min(vp.width / nw, vp.height / nh);
+        lbLayout.w = nw * s0; lbLayout.h = nh * s0;
+        lbLayout.x = (vp.width - lbLayout.w) / 2;
+        lbLayout.y = (vp.height - lbLayout.h) / 2;
+        var inner = document.getElementById("lbInner");
+        inner.style.left = lbLayout.x + "px";
+        inner.style.top = lbLayout.y + "px";
+        lbImg.style.width = lbLayout.w + "px";
+        lbImg.style.height = lbLayout.h + "px";
+        return vp;
+    }
+
+    function openLightbox(bi, hi) {
+        var b = buildings[bi];
+        lbBuilding = bi; lbHotspot = hi;
+        lbImg.src = b.img;
+        lbImg.alt = b.title;
+        lbPhotoTitle.textContent = "· " + b.title;
+        lbDots.innerHTML = "";
+        b.hotspots.forEach(function (h, idx) {
+            var dot = document.createElement("button");
+            dot.setAttribute("aria-label", "第 " + (idx + 1) + " 处构件");
+            if (idx === hi) dot.classList.add("on");
+            dot.addEventListener("click", function () { focusHotspot(idx); });
+            lbDots.appendChild(dot);
+        });
+        lightbox.classList.add("open");
+        var focus = function () { layoutInner(); focusHotspot(hi, true); };
+        if (lbImg.complete && lbImg.naturalWidth) requestAnimationFrame(focus);
+        else lbImg.onload = focus;
+    }
+    function closeLightbox() {
+        lightbox.classList.remove("open");
+        lbImg.onload = null;
+    }
+
+    function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+    function stageTransformFor(idx) {
+        var vp = lbViewport.getBoundingClientRect();
+        var h = buildings[lbBuilding].hotspots[idx];
+        var px = lbLayout.x + lbLayout.w * h.x / 100;
+        var py = lbLayout.y + lbLayout.h * h.y / 100;
+        var tx = clamp(vp.width / 2 - px * lbZoom, vp.width - lbLayout.w * lbZoom, 0);
+        var ty = clamp(vp.height / 2 - py * lbZoom, vp.height - lbLayout.h * lbZoom, 0);
+        return "translate(" + tx + "px," + ty + "px) scale(" + lbZoom + ")";
+    }
+    function focusHotspot(idx, immediate) {
+        var b = buildings[lbBuilding];
+        lbHotspot = idx;
+        var h = b.hotspots[idx];
+
+        lbTitle.textContent = (idx + 1) + ". " + h.t;
+        lbDesc.textContent = h.d;
+        lbNum.textContent = "构件 " + (idx + 1) + "/" + b.hotspots.length;
+        Array.prototype.forEach.call(lbDots.children, function (d, di) {
+            d.classList.toggle("on", di === idx);
+        });
+        lbMarker.style.left = h.x + "%";
+        lbMarker.style.top = h.y + "%";
+
+        if (!(lbImg.complete && lbImg.naturalWidth)) { lbImg.onload = function () { layoutInner(); focusHotspot(idx, immediate); }; return; }
+        layoutInner();
+        if (immediate) {
+            lbStage.style.transition = "none";
+            lbStage.style.transform = stageTransformFor(idx);
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () { lbStage.style.transition = ""; });
+            });
+        } else {
+            lbStage.style.transition = "transform 0.45s cubic-bezier(0.22,0.9,0.3,1)";
+            lbStage.style.transform = stageTransformFor(idx);
+        }
+    }
+
+    lbClose.addEventListener("click", closeLightbox);
+    lbPrev.addEventListener("click", function () {
+        var n = buildings[lbBuilding].hotspots.length;
+        focusHotspot((lbHotspot - 1 + n) % n);
+    });
+    lbNext.addEventListener("click", function () {
+        var n = buildings[lbBuilding].hotspots.length;
+        focusHotspot((lbHotspot + 1) % n);
+    });
+    lightbox.addEventListener("click", function (e) {
+        if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener("keydown", function (e) {
+        if (!lightbox.classList.contains("open")) return;
+        if (e.key === "Escape") closeLightbox();
+        if (e.key === "ArrowUp" || e.key === "ArrowLeft") lbPrev.click();
+        if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); lbNext.click(); }
+    });
+
+    /* 放大视图内可按住拖拽微调观看位置 */
+    (function () {
+        var dragging = false, sx = 0, sy = 0, ox = 0, oy = 0, raf = null;
+        function currentXY() {
+            var m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(lbStage.style.transform);
+            return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : { x: 0, y: 0 };
+        }
+        lbViewport.addEventListener("pointerdown", function (e) {
+            if (e.target.closest && e.target.closest(".lb-marker")) return;
+            dragging = true; sx = e.clientX; sy = e.clientY;
+            var p = currentXY(); ox = p.x; oy = p.y;
+            lbViewport.classList.add("dragging");
+            lbStage.style.transition = "none";
+            lbViewport.setPointerCapture(e.pointerId);
+        });
+        lbViewport.addEventListener("pointermove", function (e) {
+            if (!dragging) return;
+            if (raf) cancelAnimationFrame(raf);
+            var dx = e.clientX - sx, dy = e.clientY - sy;
+            raf = requestAnimationFrame(function () {
+                var vp = lbViewport.getBoundingClientRect();
+                var tx = clamp(ox + dx, vp.width - lbLayout.w * lbZoom, 0);
+                var ty = clamp(oy + dy, vp.height - lbLayout.h * lbZoom, 0);
+                lbStage.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + lbZoom + ")";
+            });
+        });
+        function end(e) {
+            if (!dragging) return;
+            dragging = false;
+            lbViewport.classList.remove("dragging");
+            try { lbViewport.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+        lbViewport.addEventListener("pointerup", end);
+        lbViewport.addEventListener("pointercancel", end);
+    })();
+
+    window.addEventListener("resize", function () {
+        if (lightbox.classList.contains("open")) focusHotspot(lbHotspot, true);
+    });
+
+    /* 初始化 */
+    render(0);
+})();
+</script>
+
+<!-- 小食老师对话引导 -->
+<script src="guide.js"></script>
+<script>
+(function () {
+    var guide = XJGuide({
+        name: "小食老师",
+        idle: "image/对话人物/teacher_idle.png",
+        talk: "image/对话人物/teacher_talk.png"
+    });
+
+    var nextBtn = document.getElementById("nextBtn");
+    var curNum = document.getElementById("curNum");
+    var photoWrap = document.getElementById("photoWrap");
+    var lightbox = document.getElementById("lightbox");
+
+    var curChart = 0;
+    var prompted = [false, false, false, false, false, false];
+
+    /* task=看图前的观察任务；pick=老师推荐先看的热点序号；after=该图要点小结 */
+    var charts = [
+        {
+            task: "先看这栋两层老屋。给你一个观察任务：这家人在哪里开店、又在哪里住？可以自己在图上点朱红圆点找，也可以让我先指一处。",
+            pick: 4,
+            after: "下层架空是铺面作坊，二层木板壁住人——这叫“下店上宅”。剩下的圆点里还藏着它防雨防潮的秘密：挑檐、柱础、架空层，都可以点点看。"
+        },
+        {
+            task: "镜头拉远，整条西街都在眼前了。下雨天走在这条街上，怎样才能不淋湿鞋？找找那条“连续不断的屋檐”在哪里。",
+            pick: 1,
+            after: "二层出挑、列柱支撑，形成贯通整条街的骑廊，遮阳又避雨。再看看脚下的青石板和一排排白方柱：老街的秩序感，就藏在这种重复里。"
+        },
+        {
+            task: "这一张要凑近看屋檐。下雨时瓦垄尽头有两个小构件在分工：一个挡水、一个导水。点开圆点，看它们各叫什么名字。",
+            pick: 0,
+            after: "圆形挡水的是瓦当，尖叶导水的是滴水，一盖一滴成对出现。再找找上面的福寿纹——古人把祝福，刻在了屋檐的每一个尽头。"
+        },
+        {
+            task: "高过屋顶的这几级“阶梯”，是赣派建筑的名片。先猜一猜：木屋连成一片时最怕什么？这堵墙，就是答案。",
+            pick: 0,
+            after: "怕火。马头墙又叫封火山墙，砖砌到顶隔出防火带，还能削减穿堂风、护住瓦面。它本是为了安全，却意外成了最美的天际线。"
+        },
+        {
+            task: "来一件精细活儿——看这扇木窗的花格。棂条拼出的图案无头无尾、连绵不断，你觉得古人想用它祝福什么？",
+            pick: 0,
+            after: "这叫“万字不到头”，寓意万寿绵延、循环不绝。它同时还能采光、通风、遮挡视线，一窗三用——审美和实用，在这里是双赢的。"
+        },
+        {
+            task: "最后一站，建筑规格一下就高了：重檐、彩绘、红柱、黄墙。把它和前面的白墙民居比一比，你能数出几处不一样？",
+            pick: 0,
+            after: "重檐歇山顶、斗拱彩画、朱红大漆柱、明黄庙墙，这些都是等级的信号。朴素民居住人，华丽庙宇供奉公共信仰——一条街上，并存着两种建筑语言。"
+        }
+    ];
+
+    function pickHotspot(i) {
+        var dots = photoWrap.querySelectorAll(".hotspot");
+        if (dots[charts[i].pick]) dots[charts[i].pick].click();
+    }
+    function nextChart() { nextBtn.click(); }
+
+    var nodes = [{
+        id: "welcome",
+        say: "又见面啦！古建筑自己不会说话，但构件会。今天咱们当一回“小小营造师”：我每一张图给你一个观察任务，你在图上找答案。准备好啦吗？",
+        opts: [
+            { label: "好，开始找构件！", goto: "g0task" },
+            { label: "我想自己看图", run: function () { guide.dismiss(); } }
+        ]
+    }];
+
+    charts.forEach(function (c, i) {
+        var last = i === charts.length - 1;
+        nodes.push({
+            id: "g" + i + "task",
+            say: c.task,
+            opts: [
+                { label: "我自己点红点找", goto: "g" + i + "wait" },
+                { label: "老师先指一处给我看", run: function () { pickHotspot(i); } }
+            ]
+        });
+        nodes.push({
+            id: "g" + i + "wait",
+            say: "好，朱红圆点就是构件编号，点开能放大细看。我在这儿等你，找完咱们再翻下一页。",
+            opts: [
+                { label: "还是请老师指一处", run: function () { pickHotspot(i); } },
+                { label: "这张看完了 ▸", run: nextChart, goto: "turning" }
+            ]
+        });
+        nodes.push({
+            id: "g" + i + "after",
+            say: c.after,
+            opts: [
+                last
+                    ? { label: "六图看完，听总结 ▸", goto: "g2-end" }
+                    : { label: "去看下一张图 ▸", run: nextChart, goto: "turning" }
+            ]
+        });
+    });
+
+    nodes.push({ id: "turning", say: "翻页中——看看这一张，又有什么新构件在等我们。", opts: [] });
+    nodes.push({
+        id: "g2-end",
+        say: "六张图看下来，我们其实学会了一套读房子的方法：先看街巷格局，再看屋顶、山墙、门窗，最后看装饰的等级。下次再走老街，你也能像营造师一样，把房子“拆”着看了。",
+        opts: [
+            { label: "再从头看一遍", run: nextChart, goto: "turning" },
+            { label: "我自己回顾一下", run: function () { guide.dismiss(); } }
+        ]
+    });
+
+    guide.bind(nodes);
+    guide.show("welcome");
+
+    /* 翻图：新图重新布置观察任务 */
+    var lastChart = 0;
+    new MutationObserver(function () {
+        var n = parseInt(curNum.textContent, 10) - 1;
+        if (isNaN(n) || n === lastChart) return;
+        lastChart = n;
+        curChart = n;
+        prompted[n] = false;
+        if (!guide.isMuted()) guide.show("g" + n + "task");
+    }).observe(curNum, { childList: true, characterData: true, subtree: true });
+
+    /* 灯箱打开时老师让位；第一次关闭灯箱后，给出该图的要点小结 */
+    new MutationObserver(function () {
+        if (lightbox.classList.contains("open")) {
+            guide.hideBubble();
+        } else if (!prompted[curChart]) {
+            prompted[curChart] = true;
+            if (!guide.isMuted()) guide.show("g" + curChart + "after");
+        } else {
+            guide.restoreBubble();
+        }
+    }).observe(lightbox, { attributes: true, attributeFilter: ["class"] });
+})();
+</script>
+
+<script src="music.js" defer></script>
+</body>
+</html>
